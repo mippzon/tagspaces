@@ -109,6 +109,8 @@ var isWin = navigator.appVersion.indexOf("Win")!==-1;
       moment:                 'libs/moment/min/moment.min',
       momenttimezone:         'libs/moment-timezone/builds/moment-timezone.min',
       datetimepicker:         'libs/eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min',
+      react:                  'libs/react/react.min',
+      reactdom:               'libs/react/react-dom.min',
 
       tscore:                 'js/core.api',
       tssetting:              'js/settings.api',

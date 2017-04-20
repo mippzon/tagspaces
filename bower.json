@@ -35,7 +35,8 @@
     "eonasdan-bootstrap-datetimepicker": "^v4.17.37",
     "moment":"2.15.1",
     "moment-timezone":"0.5.5",
-    "readability":"git+https://github.com/mozilla/readability.git#master"
+    "readability":"git+https://github.com/mozilla/readability.git#master",
+    "react":"15.5.4"
   },
   "private": true,
   "resolutions": {
