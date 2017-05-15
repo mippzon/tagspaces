@@ -1,7 +1,7 @@
 /* Copyright (c) 2012-2017 The TagSpaces Authors. All rights reserved.
  * Use of this source code is governed by a AGPL3 license that
  * can be found in the LICENSE file. */
-/*global isNode, isWin, isFirefox, Mousetrap, gui */
+/*global isWin, isFirefox, Mousetrap, gui */
 
 /**
  * Description
@@ -144,7 +144,7 @@ define(function(require, exports, module) {
       }
 
       switchInterfaceLanguage(language).then(function() {
-        if (isNode || isElectron) {
+        if (isElectron) {
           tsIOApi.initElectronIntegration();
         }
 

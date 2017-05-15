@@ -5,7 +5,6 @@
 
 var isFirefox = document.URL.indexOf( 'resource://' ) === 0;
 var isChrome = document.URL.indexOf( 'chrome-extension://' ) === 0;
-var isNode = false;
 var isElectron = false;
 var isCordovaAndroid = document.URL.indexOf( 'file:///android_asset' ) === 0;
 var isCordovaiOS = /^file:\/{3}[^\/]/i.test(window.location.href) && /ios|iphone|ipod|ipad/i.test(navigator.userAgent);
@@ -33,14 +32,6 @@ var isWin = navigator.appVersion.indexOf("Win")!==-1;
     //console.error = function(){};
   }
 
-  // Check for running in node-webkit
-  try {
-    require('nw.gui');
-    isNode = true;
-  } catch(e) {
-    console.log("node-webkit not found!");
-  }
-
   try {
     if (process.versions['electron']) {
       isElectron = true;
@@ -52,20 +43,16 @@ var isWin = navigator.appVersion.indexOf("Win")!==-1;
     console.log(e.message);
   }
   var PRO_JS = "pro/js/pro.api";
-  if(PRO.indexOf("@@PROVERS") == 0 || PRO == "false") { PRO_JS = 'js/pro'; }
+  //if(PRO.indexOf("@@PROVERS") == 0 || PRO == "false") { PRO_JS = 'js/pro'; }
 
   // Setting up the IO functionality according to the platform
   var IO_JS = "web/web.api";
   if( isFirefox ) {
     IO_JS = "mozilla/mozilla.api";
     PRO_JS = 'js/pro';
-  } else if ( isChrome && !isNode ) {
-    isNode = false;
+  } else if ( isChrome) {
     IO_JS = "chromium/chrome.api";
     PRO_JS = 'js/pro';
-  } else if (isNode){
-    isChrome = false;
-    IO_JS = "node-webkit/node-webkit.api";
   } else if (isCordova){
     IO_JS = "cordova/cordova.api";
   } else if (isWeb){
@@ -74,7 +61,7 @@ var isWin = navigator.appVersion.indexOf("Win")!==-1;
     IO_JS = "electron/electron.api"
   }
 
-  console.log("Loading Loader - Firefox: "+isFirefox+" | ChromeExt: "+isChrome+" | Node: "+isNode+" | Cordova: "+isCordova+" | Web: "+isWeb+" | isWin: "+isWin+" | isElectron: "+isElectron);
+  console.log("Loading Loader - Firefox: "+isFirefox+" | ChromeExt: "+isChrome+" | Cordova: "+isCordova+" | Web: "+isWeb+" | isWin: "+isWin+" | isElectron: "+isElectron);
 
   requirejs.config({
     map: {
