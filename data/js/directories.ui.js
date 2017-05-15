@@ -8,9 +8,10 @@ define(function(require, exports, module) {
 
   console.log('Loading directories.ui.js ...');
 
-  var TSCORE = require('tscore');
-  var TSPOSTIO = require("tspostioapi");
-  var tsExtManager = require('tsextmanager');
+  const TSCORE = require('tscore');
+  const TSPOSTIO = require("tspostioapi");
+  const tsExtManager = require('tsextmanager');
+  const CreateDirectoryDialog = require('js/directories/create-directory-dialog').CreateDirectoryDialog;
 
   var homeFolderTitle = 'Home';
   var directoryHistory = [];
@@ -18,99 +19,98 @@ define(function(require, exports, module) {
   var dir4ContextMenu = null;
   var folderPropertiesOpened = false;
 
-  var alternativeDirectoryNavigatorTmpl = Handlebars.compile(
-    '{{#each dirHistory}}' +
-    '<div class="btn-group">' +
-    '  <button class="btn btn-link dropdown-toggle" data-menu="{{@index}}">' +
-    '    <div class="altNavFolderTitle">' +
-    '      <span style="{{#if @last}} padding-right: 0 !important; color: black; {{/if}} padding-right: 5px; padding-left: 1px;">{{name}}</span>' +
-    '      <i {{#if @last}} style="display: none;" {{/if}} class="fa fa-caret-right"></i>' +
-    '    </div>' +
-    '  </button>' +
-    '  <div class="dropdown clearfix dirAltNavMenu" id="dirMenu{{@index}}" data-path="{{path}}">' +
-    '    <ul role="menu" class="dropdown-menu">' +
-    '      <li class="dropdown-header"><button class="close">&times;</button><span data-i18n="ns.common:actionsForDirectory2"></span>&nbsp;"{{name}}"</li>' +
-    '      <li><a class="btn btn-link reloadCurrentDirectory" data-path="{{path}}" style="text-align: left"><i class="fa fa-refresh fa-fw fa-lg"></i><span data-i18n="ns.common:reloadCurrentDirectory"></span></a></li>' +
-    '      <li><a class="btn btn-link createSubdirectory" data-path="{{path}}" style="text-align: left"><i class="fa fa-folder-o fa-fw fa-lg"></i><span data-i18n="ns.common:createSubdirectory"></span></a></li>' +
-    '      <li><a class="btn btn-link renameDirectory" data-path="{{path}}" style="text-align: left"><i class="fa fa-paragraph fa-fw fa-lg"></i><span data-i18n="ns.common:renameDirectory"></span></a></li>' +
-    '      <li class="divider" style="width: 100%"></li>' +
-    '      <li class="dropdown-header"><span data-i18n="ns.common:subfodersOfDirectory2"></span>&nbsp;"{{name}}"</li>' +
-    '      <div class="dirButtonContainer">' +
-    '{{#if children}}' +
-    '{{#each children}}' +
-    '        <button class="btn dirButton" data-path="{{path}}" title="{{path}}"><i class="fa fa-folder-o"></i>&nbsp;{{name}}</button>' +
-    '{{/each}}' +
-    '{{else}}' +
-    '        <div>&nbsp;&nbsp;&nbsp;<span data-i18n="ns.common:noSubfoldersFound"></span></div>' +
-    '{{/if}}' +
-    '      </div>' +
-    '     </ul>' +
-    '   </div>' +
-    '</div>' +
-    '{{/each}}' +
-    '<button class="btn btn-link" data-i18n="[title]ns.common:folderPropertiesTooltip" id="toggleFolderProperitesButton"><i class="fa fa-info fa-lg"></i></button>' +
-    ''
-  );
+  const alternativeDirectoryNavigatorTmpl = Handlebars.compile(`
+    {{#each dirHistory}}
+    <div class="btn-group">
+      <button class="btn btn-link dropdown-toggle" data-menu="{{@index}}">
+        <div class="altNavFolderTitle">
+          <span style="{{#if @last}} padding-right: 0 !important; color: black; {{/if}} padding-right: 5px; padding-left: 1px;">{{name}}</span>
+          <i {{#if @last}} style="display: none;" {{/if}} class="fa fa-caret-right"></i>
+        </div>
+      </button>
+      <div class="dropdown clearfix dirAltNavMenu" id="dirMenu{{@index}}" data-path="{{path}}">
+        <ul role="menu" class="dropdown-menu">
+          <li class="dropdown-header"><button class="close">&times;</button><span data-i18n="ns.common:actionsForDirectory2"></span>&nbsp;"{{name}}"</li>
+          <li><a class="btn btn-link reloadCurrentDirectory" data-path="{{path}}" style="text-align: left"><i class="fa fa-refresh fa-fw fa-lg"></i><span data-i18n="ns.common:reloadCurrentDirectory"></span></a></li>
+          <li><a class="btn btn-link createSubdirectory" data-path="{{path}}" style="text-align: left"><i class="fa fa-folder-o fa-fw fa-lg"></i><span data-i18n="ns.common:createSubdirectory"></span></a></li>
+          <li><a class="btn btn-link renameDirectory" data-path="{{path}}" style="text-align: left"><i class="fa fa-paragraph fa-fw fa-lg"></i><span data-i18n="ns.common:renameDirectory"></span></a></li>
+          <li class="divider" style="width: 100%"></li>
+          <li class="dropdown-header"><span data-i18n="ns.common:subfodersOfDirectory2"></span>&nbsp;"{{name}}"</li>
+          <div class="dirButtonContainer">
+    {{#if children}}
+    {{#each children}}
+            <button class="btn dirButton" data-path="{{path}}" title="{{path}}"><i class="fa fa-folder-o"></i>&nbsp;{{name}}</button>
+    {{/each}}
+    {{else}}
+            <div>&nbsp;&nbsp;&nbsp;<span data-i18n="ns.common:noSubfoldersFound"></span></div>
+    {{/if}}
+          </div>
+         </ul>
+       </div>
+    </div>
+    {{/each}}
+    <button class="btn btn-link" data-i18n="[title]ns.common:folderPropertiesTooltip" id="toggleFolderProperitesButton"><i class="fa fa-info fa-lg"></i></button>
+  `);
 
-  var mainDirectoryNavigatorTmpl = Handlebars.compile(
-    '<div>{{#each dirHistory}}' +
-    '  <div class="accordion-group disableTextSelection">' +
-    '    <div class="accordion-heading btn-group flexLayout" data-path="{{path}}">' +
-    '      <button class="btn btn-link btn-lg directoryIcon" data-toggle="collapse" data-target="#dirButtons{{@index}}" data-path="{{path}}" title="{{../toggleDirectory}}">' +
-    '        <i class="fa fa-folder fa-fw"></i>' +
-    '      </button>' +
-    '      <button class="btn btn-link directoryTitle ui-droppable flexMaxWidth" data-path="{{path}}" title="{{path}}">{{name}}</button>' +
-    '      <button class="btn btn-link btn-lg directoryActions" data-path="{{path}}" title="{{../directoryOperations}}">' +
-    '        <b class="fa fa-ellipsis-v"></b>' +
-    '      </button>' +
-    '    </div>' +
-    '    <div class="accordion-body collapse in" id="dirButtons{{@index}}">' +
-    '      <div class="accordion-inner" id="dirButtonsContent{{@index}}" style="padding: 4px; padding-top: 0;">' +
-    '        <div class="dirButtonContainer">' +
-    '          <button class="btn btn-sm btn-default dirButton parentDirectoryButton" data-path="{{path}}/.." title="Go to parent folder">' +
-    '            <i class="fa fa-level-up"></i>' +
-    '          </button>' +
-    '      {{#if children}}' +
-    '        {{#each children}}' +
-    '          <button class="btn btn-sm btn-default dirButton ui-droppable" data-path="{{path}}" title="{{path}}">' +
-    '            <div><i class="fa fa-folder-o"></i>&nbsp;{{name}}</div>' +
-    '          </button>' +
-    '        {{/each}}' +
-    '      {{else}}' +
-    '          <div>&nbsp;&nbsp;&nbsp;{{../../noSubfoldersFound}}</div>' +
-    '      {{/if}}' +
-    '        </div>' +
-    '        <div class="directoryTagsArea" data-path="{{path}}" style="padding: 4px; padding-left: 0; "></div>' +
-    '      </div>' +
-    '    </div>' +
-    '  </div>' +
-    '{{/each}}</div>'
-  );
+  const mainDirectoryNavigatorTmpl = Handlebars.compile(`
+    <div>{{#each dirHistory}}
+      <div class="accordion-group disableTextSelection">
+        <div class="accordion-heading btn-group flexLayout" data-path="{{path}}">
+          <button class="btn btn-link btn-lg directoryIcon" data-toggle="collapse" data-target="#dirButtons{{@index}}" data-path="{{path}}" title="{{../toggleDirectory}}">
+            <i class="fa fa-folder fa-fw"></i>
+          </button>
+          <button class="btn btn-link directoryTitle ui-droppable flexMaxWidth" data-path="{{path}}" title="{{path}}">{{name}}</button>
+          <button class="btn btn-link btn-lg directoryActions" data-path="{{path}}" title="{{../directoryOperations}}">
+            <b class="fa fa-ellipsis-v"></b>
+          </button>
+        </div>
+        <div class="accordion-body collapse in" id="dirButtons{{@index}}">
+          <div class="accordion-inner" id="dirButtonsContent{{@index}}" style="padding: 4px; padding-top: 0;">
+            <div class="dirButtonContainer">
+              <button class="btn btn-sm btn-default dirButton parentDirectoryButton" data-path="{{path}}/.." title="Go to parent folder">
+                <i class="fa fa-level-up"></i>
+              </button>
+          {{#if children}}
+            {{#each children}}
+              <button class="btn btn-sm btn-default dirButton ui-droppable" data-path="{{path}}" title="{{path}}">
+                <div><i class="fa fa-folder-o"></i>&nbsp;{{name}}</div>
+              </button>
+            {{/each}}
+          {{else}}
+              <div>&nbsp;&nbsp;&nbsp;{{../../noSubfoldersFound}}</div>
+          {{/if}}
+            </div>
+            <div class="directoryTagsArea" data-path="{{path}}" style="padding: 4px; padding-left: 0; "></div>
+          </div>
+        </div>
+      </div>
+    {{/each}}</div>
+  `);
 
-  var locationChooserTmpl = Handlebars.compile(
-    '<li class="dropdown-header"><button class="close">&times;</button></li>' +
-    '<li class="flexLayout">' +
-    '  <button style="text-align: left;" class="btn btn-link flexMaxWidth" id="createNewLocation">' +
-    '    <i class="fa fa-plus"></i>&nbsp;<span data-i18n="[title]ns.common:connectNewLocationTooltip;ns.common:connectNewLocationTooltip">{{connectLocation}}</span>' +
-    '  </button>' +
-    '</li>' +
-    '<li class="divider"></li>' +
-    '<li class="dropdown-header" data-i18n="ns.common:yourLocations">{{yourLocations}}</li>' +
-    '{{#each locations}}' +
-    '<li class="flexLayout">' +
-    '  <button title="{{path}}" path="{{path}}" name="{{name}}" class="btn btn-link openLocation">' +
-    '{{#if isDefault}}' +
-    '    <i style="color: darkred" class="fa fa-bookmark" data-i18n="[title]ns.dialogs:startupLocation"></i>' +
-    '{{else}}' +
-    '    <i class="fa fa-bookmark"></i>' +
-    '{{/if}}' +
-    '  <span class="locationName">{{name}}</span></button>' +
-    '  <button type="button" data-i18n="[title]ns.common:editLocation" title="{{editLocationTitle}}" location="{{name}}" path="{{path}}" class="btn btn-link pull-right editLocation">' +
-    '    <i class="fa fa-pencil fa-lg"></i>' +
-    '  </button>' +
-    '</li>' +
-    '{{/each}}'
-  );
+  const locationChooserTmpl = Handlebars.compile(`
+    <li class="dropdown-header"><button class="close">&times;</button></li>
+    <li class="flexLayout">
+      <button style="text-align: left;" class="btn btn-link flexMaxWidth" id="createNewLocation">
+        <i class="fa fa-plus"></i>&nbsp;<span data-i18n="[title]ns.common:connectNewLocationTooltip;ns.common:connectNewLocationTooltip">{{connectLocation}}</span>
+      </button>
+    </li>
+    <li class="divider"></li>
+    <li class="dropdown-header" data-i18n="ns.common:yourLocations">{{yourLocations}}</li>
+    {{#each locations}}
+    <li class="flexLayout">
+      <button title="{{path}}" path="{{path}}" name="{{name}}" class="btn btn-link openLocation">
+    {{#if isDefault}}
+        <i style="color: darkred" class="fa fa-bookmark" data-i18n="[title]ns.dialogs:startupLocation"></i>
+    {{else}}
+        <i class="fa fa-bookmark"></i>
+    {{/if}}
+      <span class="locationName">{{name}}</span></button>
+      <button type="button" data-i18n="[title]ns.common:editLocation" title="{{editLocationTitle}}" location="{{name}}" path="{{path}}" class="btn btn-link pull-right editLocation">
+        <i class="fa fa-pencil fa-lg"></i>
+      </button>
+    </li>
+    {{/each}}
+  `);
 
   function openLocation(path) {
     var originalPath = path;
@@ -900,58 +900,9 @@ define(function(require, exports, module) {
     });
   }
 
-  function createDirectory() {
-    var dirPath = $('#createNewDirectoryButton').attr('path') + TSCORE.dirSeparator + $('#newDirectoryName').val();
-    TSCORE.IO.createDirectoryPromise(dirPath).then(function() {
-      TSCORE.showSuccessDialog("Directory created successfully.");
-      TSCORE.navigateToDirectory(dirPath);
-      TSCORE.hideWaitingDialog();
-      TSCORE.hideLoadingAnimation();
-    }, function(error) {
-      TSCORE.hideWaitingDialog();
-      TSCORE.hideLoadingAnimation();
-      console.error("Creating directory: " + dirPath + " failed with: " + error);
-      TSCORE.showAlertDialog("Creating " + dirPath + " failed!");
-    });
-  }
-
   function showCreateDirectoryDialog(dirPath) {
-    require(['text!templates/DirectoryCreateDialog.html'], function(uiTPL) {
-      if ($('#dialogDirectoryCreate').length < 1) {
-        var uiTemplate = Handlebars.compile(uiTPL);
-        $('body').append(uiTemplate());
-        //$('#createNewDirectoryButton').off();
-        $('#createNewDirectoryButton').on('click', createDirectory);
-
-        $('#dialogDirectoryCreate').i18n();
-        $('#formDirectoryCreate').validator();
-        $('#formDirectoryCreate').submit(function(e) {
-          e.preventDefault();
-          if ($('#createNewDirectoryButton').prop('disabled') === false) {
-            $('#createNewDirectoryButton').click();
-          }
-        });
-        $('#formDirectoryCreate').on('invalid.bs.validator', function() {
-          $('#createNewDirectoryButton').prop('disabled', true);
-        });
-        $('#formDirectoryCreate').on('valid.bs.validator', function() {
-          $('#createNewDirectoryButton').prop('disabled', false);
-        });
-        $('#dialogDirectoryCreate').on('shown.bs.modal', function() {
-          $('#newDirectoryName').focus();
-        });
-        $('#dialogDirectoryCreate').draggable({
-          handle: ".modal-header"
-        });
-      }
-
-      $('#createNewDirectoryButton').attr('path', dirPath);
-      $('#newDirectoryName').val('');
-      $('#dialogDirectoryCreate').modal({
-        backdrop: 'static',
-        show: true
-      });
-    });
+    let createDirectoryDialog = new CreateDirectoryDialog();
+    createDirectoryDialog.showDialog(dirPath);
   }
 
   function showRenameDirectoryDialog(dirPath) {
