@@ -37,7 +37,7 @@ define(function(require, exports) {
     });
 
     // Managing droping of files in the perspectives
-    if (isElectron) {
+    if (TSCORE.isElectron) {
       $('#viewContainers').on('dragenter', function(event) {
         event.preventDefault();
         showFileDropArea();

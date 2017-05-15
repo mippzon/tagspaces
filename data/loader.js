@@ -1,34 +1,33 @@
-/* Copyright (c) 2012-2016 The TagSpaces Authors. All rights reserved.
+/* Copyright (c) 2012-present The TagSpaces Authors. All rights reserved.
  * Use of this source code is governed by a AGPL3 license that
  * can be found in the LICENSE file. */
 /* global define, requirejs, _  */
 
-var isFirefox = document.URL.indexOf( 'resource://' ) === 0;
-var isChrome = document.URL.indexOf( 'chrome-extension://' ) === 0;
-var isElectron = false;
-var isCordovaAndroid = document.URL.indexOf( 'file:///android_asset' ) === 0;
-var isCordovaiOS = /^file:\/{3}[^\/]/i.test(window.location.href) && /ios|iphone|ipod|ipad/i.test(navigator.userAgent);
-var isCordova = isCordovaAndroid || isCordovaiOS;
-var isWeb = document.URL.indexOf( 'http' ) === 0;
-var isOSX = navigator.appVersion.indexOf("Mac")!==-1;
-var isWin = navigator.appVersion.indexOf("Win")!==-1;
+let isFirefox = document.URL.indexOf( 'resource://' ) === 0;
+let isChrome = document.URL.indexOf( 'chrome-extension://' ) === 0;
+let isElectron = false;
+let isCordovaAndroid = document.URL.indexOf( 'file:///android_asset' ) === 0;
+let isCordovaiOS = /^file:\/{3}[^\/]/i.test(window.location.href) && /ios|iphone|ipod|ipad/i.test(navigator.userAgent);
+let isCordova = isCordovaAndroid || isCordovaiOS;
+let isWeb = document.URL.indexOf( 'http' ) === 0;
+let isOSX = navigator.appVersion.indexOf("Mac")!==-1;
+let isWin = navigator.appVersion.indexOf("Win")!==-1;
 
 /**
  * The main loader module for the application
- * @name TSLoader
  */
-(function () {
+(() => {
   // the value of this var is replaced to "true" by the build script
-  var PRODUCTION = "@@PRODUCTION";
-  var PRO = "@@PROVERSION";
+  const PRODUCTION = "@@PRODUCTION";
+  const PRO = "@@PROVERSION";
 
   // Disabling all output to console in production mode
   if (PRODUCTION == "true") {
     console = console || {};
-    console.log = function(){};
-    console.warn = function(){};
-    console.time = function(){};
-    console.timeEnd = function(){};
+    console.log = () => {};
+    console.warn = () => {};
+    console.time = () => {};
+    console.timeEnd = () => {};
     //console.error = function(){};
   }
 
@@ -42,11 +41,11 @@ var isWin = navigator.appVersion.indexOf("Win")!==-1;
   } catch(e) {
     console.log(e.message);
   }
-  var PRO_JS = "pro/js/pro.api";
+  let PRO_JS = "pro/js/pro.api";
   //if(PRO.indexOf("@@PROVERS") == 0 || PRO == "false") { PRO_JS = 'js/pro'; }
 
   // Setting up the IO functionality according to the platform
-  var IO_JS = "web/web.api";
+  let IO_JS = "web/web.api";
   if( isFirefox ) {
     IO_JS = "mozilla/mozilla.api";
     PRO_JS = 'js/pro';
@@ -128,38 +127,29 @@ var isWin = navigator.appVersion.indexOf("Win")!==-1;
       'underscore':               { exports: '_' },
       'bootstrap':                { deps: ['jquery'] },
       'jqueryui':                 { deps: ['jquery'] },
-      'jquerysimplecolorpicker':  { deps: ['jquery','bootstrap'] },
-      'bootstrap3xeditable':      { deps: ['jquery','bootstrap'] },
-      'bootstrapvalidator':       { deps: ['jquery','bootstrap'] },
-      'i18next':                  { deps: ['jquery'] },
+      'jquerysimplecolorpicker':  { deps: ['bootstrap'] },
+      'bootstrap3xeditable':      { deps: ['bootstrap'] },
+      'bootstrapvalidator':       { deps: ['bootstrap'] },
       'select2':                  { deps: ['jquery'] },
       'hammerjs':                 { deps: ['jquery'] },
       'jqueryhammerjs':           { deps: ['hammerjs'] },
       'mousetrapgb':              { deps: ['mousetrap'] },
-      'tscore':                   { deps: [
-        'jquery',
-        'jqueryui',
-        'hammerjs',
-        'jqueryhammerjs',
-        'bootstrap',
-        'bootstrap3xeditable',
-        'bootstrapvalidator',
-        'jquerysimplecolorpicker',
-        'i18next',
-        'mousetrap',
-        'mousetrapgb',
-        'select2',
-        'handlebarsjs',
-        'tssettingsdefault',
-        'noty',
-    ] }
     }
   });
 
-  define(function (require) {
-    requirejs(['tscore','underscore'], function (core) {
+  define((require) => {
+    requirejs(['tscore', 'underscore'], (core) => {
+      core.isFirefoxExt = isFirefox;
+      core.isChromeExt = isChrome;
+      core.isElectron = isElectron;
+      core.isCordovaAndroid = isCordovaAndroid;
+      core.isCordovaiOS = isCordovaiOS;
+      core.isCordova = isCordova;
+      core.isWeb = isWeb;
+      core.isOSX = isOSX;
+      core.isWin = isWin;
       if(isCordova) {
-        require(["cordova.js"]);
+        require(['cordova.js']);
       } else {
         core.initApp();
       }

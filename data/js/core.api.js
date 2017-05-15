@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2017 The TagSpaces Authors. All rights reserved.
+/* Copyright (c) 2012-present The TagSpaces Authors. All rights reserved.
  * Use of this source code is governed by a AGPL3 license that
  * can be found in the LICENSE file. */
 /*global isWin, isFirefox, Mousetrap, gui */
@@ -11,6 +11,22 @@ define(function(require, exports, module) {
   'use strict';
 
   console.log('Loading core.api.js ...');
+
+  require('jquery');
+  require('jqueryui');
+  require('hammerjs');
+  require('jqueryhammerjs');
+  require('bootstrap');
+  require('bootstrap3xeditable');
+  require('bootstrapvalidator');
+  require('jquerysimplecolorpicker');
+  require('mousetrap');
+  require('mousetrapgb');
+  require('select2');
+  require('handlebarsjs');
+  require('tssettingsdefault');
+  require('noty');
+  require('i18next');
 
   // Importing modules
   var tsSettings = require('tssetting');
@@ -199,18 +215,6 @@ define(function(require, exports, module) {
   }
 
   function initKeyBindings() {
-    if (isNode) {
-      var win = gui.Window.get();
-      Mousetrap.bind(tsSettings.getOpenDevToolsScreenKeyBinding(), function() {
-        win.showDevTools();
-      });
-      Mousetrap.bind(tsSettings.getReloadApplicationKeyBinding(), function() {
-        win.reloadIgnoringCache();
-      });
-      Mousetrap.bind(tsSettings.getToggleFullScreenKeyBinding(), function() {
-        win.toggleFullscreen();
-      });
-    }
     Mousetrap.bind(tsSettings.getShowTagLibraryKeyBinding(), function() {
       tsCoreUI.showTagsPanel();
     });
@@ -318,34 +322,6 @@ define(function(require, exports, module) {
         model[i].extension = fileExt; // TODO complete the list
       }
     }
-  }
-
-  function exportFileListCSV(fileList) {
-    var csv = '';
-    var headers = [];
-    var rows = [];
-    var numberOfTagColumns = 40;
-    // max. estimated to 40 ca. 5 symbols per tag _[er], max. path length 25x chars
-    headers.push('path');
-    headers.push('title');
-    headers.push('changed_date');
-    headers.push('size');
-    for (var i = 0; i < numberOfTagColumns; i++) {
-      headers.push('tag' + i);
-    }
-    csv += headers.join(',') + '\n';
-    for (var i = 0; i < fileList.length; i++) {
-      var lmtd = "";
-      try {
-        lmtd = (new Date(fileList[i].lmdt)).toISOString();
-      } catch (e) {
-        console.log("error parsing lmdt date");
-      }
-      var row = fileList[i].path + ',' + fileList[i].title + ',' + lmtd + ',' + fileList[i].size + ',' + fileList[i].tags;
-      rows.push(row);
-    }
-    csv += rows.join('\n');
-    return csv;
   }
 
   function exportFileListArray(fileList) {
@@ -532,7 +508,7 @@ define(function(require, exports, module) {
   exports.closeLeftPanel = closeLeftPanel;
   exports.toggleFullWidth = toggleFullWidth;
   exports.updateNewVersionData = updateNewVersionData;
-  exports.exportFileListCSV = exportFileListCSV;
+  exports.exportFileListCSV = tsIOUtils.exportFileListCSV;
   exports.exportFileListArray = exportFileListArray;
   exports.removeFileModel = removeFileModel;
   exports.updateFileModel = updateFileModel;

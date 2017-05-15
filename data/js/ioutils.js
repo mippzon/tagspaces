@@ -167,12 +167,41 @@ define(function(require, exports, module) {
     TSCORE.hideWaitingDialog();
   };
 
+  function exportFileListCSV(fileList) {
+    var csv = '';
+    var headers = [];
+    var rows = [];
+    var numberOfTagColumns = 40;
+    // max. estimated to 40 ca. 5 symbols per tag _[er], max. path length 25x chars
+    headers.push('path');
+    headers.push('title');
+    headers.push('changed_date');
+    headers.push('size');
+    for (var i = 0; i < numberOfTagColumns; i++) {
+      headers.push('tag' + i);
+    }
+    csv += headers.join(',') + '\n';
+    for (var i = 0; i < fileList.length; i++) {
+      var lmtd = "";
+      try {
+        lmtd = (new Date(fileList[i].lmdt)).toISOString();
+      } catch (e) {
+        console.log("error parsing lmdt date");
+      }
+      var row = fileList[i].path + ',' + fileList[i].title + ',' + lmtd + ',' + fileList[i].size + ',' + fileList[i].tags;
+      rows.push(row);
+    }
+    csv += rows.join('\n');
+    return csv;
+  }  
+
   exports.renameFileSuccess = renameFileSuccess;
   exports.stopDirectoryWalking = stopDirectoryWalking;
   exports.walkDirectory = walkDirectory;
   exports.listSubDirectories = listSubDirectories;
   exports.createDirectoryIndex = createDirectoryIndex;
   exports.deleteFiles = deleteFiles;
+  exports.exportFileListCSV = exportFileListCSV;
   //TODO exports.createTree = createTree;
   //TODO exports.copyFiles = copyFiles;
   //TODO exports.moveFiles = moveFiles;
