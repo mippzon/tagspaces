@@ -13,6 +13,9 @@ define(function(require, exports, module) {
   function initPerspective(extPath) {
     return new Promise(function(resolve, reject) {
       require([extPath], function(perspective) {
+        if(perspective.GridPerspective) {
+          perspective = new perspective.GridPerspective()
+        }
         perspectives.push(perspective);
 
         // Creating perspective's toolbar
