@@ -69,109 +69,6 @@ define(function(require, exports, module) {
       getExtensionPath();
       getShowUnixHiddenEntries();
       getCheckForUpdates();
-      if (oldBuildNumber <= 1700) {
-        setPrefixTagContainer('');
-        setTagDelimiter(' ');
-        setCalculateTags(false);
-      }
-      if (oldBuildNumber <= 20140307000000) {
-        addFileType({
-          'type': 'odt',
-          'viewer': 'editorODF',
-          'editor': 'false'
-        });
-        addFileType({
-          'type': 'ods',
-          'viewer': 'editorODF',
-          'editor': 'false'
-        });
-        addFileType({
-          'type': 'odp',
-          'viewer': 'editorODF',
-          'editor': 'false'
-        });
-        addFileType({
-          'type': 'odg',
-          'viewer': 'editorODF',
-          'editor': 'false'
-        });
-      }
-      if (oldBuildNumber <= 20141002000000) {
-        updateFileType({
-          'type': 'json',
-          'viewer': 'editorJSON',
-          'editor': 'editorJSON'
-        });
-        updateFileType({
-          'type': 'html',
-          'viewer': 'viewerHTML',
-          'editor': 'editorHTML'
-        });
-        updateFileType({
-          'type': 'htm',
-          'viewer': 'viewerHTML',
-          'editor': 'editorHTML'
-        });
-      }
-      if (oldBuildNumber <= 20141123000000) {
-        updateFileType({
-          'type': 'mhtml',
-          'viewer': 'viewerMHTML',
-          'editor': 'false'
-        });
-        updateFileType({
-          'type': 'mht',
-          'viewer': 'viewerMHTML',
-          'editor': 'false'
-        });
-      }
-      if (oldBuildNumber <= 20150727000000) {
-        updateFileType({
-          'type': 'ogg',
-          'viewer': 'viewerAudioVideo',
-          'editor': 'false'
-        });
-        updateFileType({
-          'type': 'oga',
-          'viewer': 'viewerAudioVideo',
-          'editor': 'false'
-        });
-        updateFileType({
-          'type': 'ogv',
-          'viewer': 'viewerAudioVideo',
-          'editor': 'false'
-        });
-        updateFileType({
-          'type': 'ogx',
-          'viewer': 'viewerAudioVideo',
-          'editor': 'false'
-        });
-        updateFileType({
-          'type': 'webm',
-          'viewer': 'viewerAudioVideo',
-          'editor': 'false'
-        });
-        updateFileType({
-          'type': 'mp3',
-          'viewer': 'viewerAudioVideo',
-          'editor': 'false'
-        });
-        updateFileType({
-          'type': 'mp4',
-          'viewer': 'viewerAudioVideo',
-          'editor': 'false'
-        });
-        addFileType({
-          'type': 'epub',
-          'viewer': 'viewerEPUB',
-          'editor': 'false'
-        });
-        addFileType({
-          'type': 'zip',
-          'viewer': 'viewerZIP',
-          'editor': 'false'
-        });
-      }
       if (oldBuildNumber <= 20160905130746) {
         addFileType({
           'type': 'eml',
@@ -199,6 +96,11 @@ define(function(require, exports, module) {
           'viewer': 'viewerRTF',
           'editor': 'false'
         });
+        /* updateFileType({
+          'type': 'json',
+          'viewer': 'editorJSON',
+          'editor': 'editorJSON'
+        }); */
       }
 
       saveSettings();
