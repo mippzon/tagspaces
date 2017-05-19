@@ -3,15 +3,15 @@
  * can be found in the LICENSE file. */
 /* global define, requirejs, _  */
 
-let isFirefox = document.URL.indexOf( 'resource://' ) === 0;
-let isChrome = document.URL.indexOf( 'chrome-extension://' ) === 0;
-let isElectron = false;
-let isCordovaAndroid = document.URL.indexOf( 'file:///android_asset' ) === 0;
-let isCordovaiOS = /^file:\/{3}[^\/]/i.test(window.location.href) && /ios|iphone|ipod|ipad/i.test(navigator.userAgent);
-let isCordova = isCordovaAndroid || isCordovaiOS;
-let isWeb = document.URL.indexOf( 'http' ) === 0;
-let isOSX = navigator.appVersion.indexOf("Mac")!==-1;
-let isWin = navigator.appVersion.indexOf("Win")!==-1;
+var isFirefox = document.URL.indexOf( 'resource://' ) === 0;
+var isChrome = document.URL.indexOf( 'chrome-extension://' ) === 0;
+var isElectron = false;
+var isCordovaAndroid = document.URL.indexOf( 'file:///android_asset' ) === 0;
+var isCordovaiOS = /^file:\/{3}[^\/]/i.test(window.location.href) && /ios|iphone|ipod|ipad/i.test(navigator.userAgent);
+var isCordova = isCordovaAndroid || isCordovaiOS;
+var isWeb = document.URL.indexOf( 'http' ) === 0;
+var isOSX = navigator.appVersion.indexOf("Mac")!==-1;
+var isWin = navigator.appVersion.indexOf("Win")!==-1;
 
 /**
  * The main loader module for the application
