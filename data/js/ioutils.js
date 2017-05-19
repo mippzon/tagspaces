@@ -14,7 +14,6 @@ define((require, exports, module) => {
   const TSCORE = require('tscore');
   const TSPOSTIO = require('tspostioapi');
   const stopDirectoryWalking = false;
-  const searchResultsCounter = 0;
 
   class TSIoUtils {
 
