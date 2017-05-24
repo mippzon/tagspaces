@@ -1,477 +1,464 @@
-/* Copyright (c) 2012-2017 The TagSpaces Authors. All rights reserved.
+/* Copyright (c) 2012-present The TagSpaces Authors. All rights reserved.
  * Use of this source code is governed by a AGPL3 license that
  * can be found in the LICENSE file. */
 
-define(function(require, exports, module) {
+define((require, exports, module) => {
   'use strict';
 
-  var TSCORE = require("tscore");
+  const TSCORE = require("tscore");
 
-  var maxTmbSize = 300;
-  var supportedImageExtensions = ["jpg", "jpeg", "png", "gif"];
+  const maxTmbSize = 300;
+  const supportedImageExtensions = ["jpg", "jpeg", "png", "gif"];
+  
+  class TSMeta {
 
-  function makeMetaPathByName(name) {
-    return TSCORE.currentPath + TSCORE.dirSeparator + TSCORE.metaFolder + name;
-  }
-
-  function getDirectoryMetaInformation() {
-    var metaFolderPath = TSCORE.currentPath + TSCORE.dirSeparator + TSCORE.metaFolder;
-    console.log("getDirectoryMetaInformation: " + metaFolderPath);
-    return TSCORE.IO.listDirectoryPromise(metaFolderPath, true);
-  }
-
-  function findMetaFilebyPath(filePath, metaFileExtension) {
-    var metaFilePath;
-    var metaFolderPath = TSCORE.TagUtils.extractParentDirectoryPath(filePath) + TSCORE.dirSeparator + TSCORE.metaFolder;
-    filePath = metaFolderPath + TSCORE.dirSeparator + TSCORE.TagUtils.extractFileName(filePath) + metaFileExtension;
-    TSCORE.metaFileList.every(function(element) {
-      if (filePath.indexOf(element.path) >= 0) {
-        metaFilePath = element.path;
-        return false;
-      }
-      return true;
-    });
-    return metaFilePath;
-  }
-
-  function findMetaObjectFromFileList(filePath) {
-    var metaObj = null;
-    TSCORE.fileList.every(function(element) {
-      if (element.path === filePath) {
-        metaObj = element.meta;
-        return false;
-      }
-      return true;
-    });
-    return metaObj;
-  }
-
-  function saveMetaData(filePath, metaData) {
-    var metaFilePath = findMetaFilebyPath(filePath, TSCORE.metaFileExt);
-    var currentVersion = TSCORE.Config.DefaultSettings.appVersion + "." + TSCORE.Config.DefaultSettings.appBuild;
-    if (!metaFilePath) {
-      var name = TSCORE.Utils.baseName(filePath) + TSCORE.metaFileExt;
-      var parentFolder = TSCORE.TagUtils.extractParentDirectoryPath(filePath);
-      metaFilePath = parentFolder + TSCORE.dirSeparator + TSCORE.metaFolder + TSCORE.dirSeparator + name;
-      var entry = {
-        "name": name,
-        "isFile": true,
-        "path": metaFilePath,
-      };
-      TSCORE.metaFileList.push(entry);
-      metaData.appVersionCreated = currentVersion;
+    static _makeMetaPathByName(name) {
+      return TSCORE.currentPath + TSCORE.dirSeparator + TSCORE.metaFolder + name;
     }
 
-    metaData.appName = TSCORE.Config.DefaultSettings.appName;
-    metaData.appVersionUpdated = currentVersion;
-    metaData.lastUpdated = new Date();
-
-    var content = JSON.stringify(metaData);
-    TSCORE.IO.saveTextFilePromise(metaFilePath, content, true);
-  }
-
-  function updateMetaData(sourceFilePath, targetFilePath) {
-    if (!targetFilePath || !sourceFilePath) {
-      return false;
+    static getDirectoryMetaInformation() {
+      let metaFolderPath = TSCORE.currentPath + TSCORE.dirSeparator + TSCORE.metaFolder;
+      console.log("getDirectoryMetaInformation: " + metaFolderPath);
+      return TSCORE.IO.listDirectoryPromise(metaFolderPath, true);
     }
 
-    if (TSCORE.IO.stopWatchingDirectories) {
-      TSCORE.IO.stopWatchingDirectories();
-    }
-
-    var fileInMetaFileList = false;
-    var sourceFileName = TSCORE.Utils.baseName(sourceFilePath);
-    var pathSource = TSCORE.Utils.dirName(sourceFilePath);
-    var pathTarget = TSCORE.Utils.dirName(targetFilePath);
-    var metaIndexForRemove = [];
-    TSCORE.metaFileList.forEach(function(metaElement, index) {
-      if (metaElement.name.indexOf(sourceFileName) === 0) {
-        fileInMetaFileList = true;
-
-        var targetMetaName = TSCORE.Utils.baseName(targetFilePath) + "." + TSCORE.TagUtils.extractFileExtension(metaElement.name);
-        var targetMetaFolderPath = pathTarget + TSCORE.dirSeparator + TSCORE.metaFolder;
-        var targetMetaFilePath = targetMetaFolderPath + TSCORE.dirSeparator + targetMetaName;
-        var sourceMetaFilePath = pathSource + TSCORE.dirSeparator + TSCORE.metaFolder + TSCORE.dirSeparator + metaElement.name;
-
-        if (pathSource === pathTarget) {
-          metaElement.name = targetMetaName;
-          metaElement.path = targetMetaFilePath;
-        } else {
-          metaIndexForRemove.push(index);
+    static findMetaFilebyPath(filePath, metaFileExtension) {
+      let metaFilePath;
+      let metaFolderPath = TSCORE.TagUtils.extractParentDirectoryPath(filePath) + TSCORE.dirSeparator + TSCORE.metaFolder;
+      filePath = metaFolderPath + TSCORE.dirSeparator + TSCORE.TagUtils.extractFileName(filePath) + metaFileExtension;
+      TSCORE.metaFileList.every((element) => {
+        if (filePath.indexOf(element.path) >= 0) {
+          metaFilePath = element.path;
+          return false;
         }
+        return true;
+      });
+      return metaFilePath;
+    }
 
-        createMetaFolderPromise(pathTarget).then(function() {
-          TSCORE.IO.renameFilePromise(sourceMetaFilePath, targetMetaFilePath).then(function() {
-            console.log('Meta file moved/renamed successfully to ' + targetMetaFilePath);
+    static findMetaObjectFromFileList(filePath) {
+      let metaObj = null;
+      TSCORE.fileList.every((element) => {
+        if (element.path === filePath) {
+          metaObj = element.meta;
+          return false;
+        }
+        return true;
+      });
+      return metaObj;
+    }
+
+    static saveMetaData(filePath, metaData) {
+      let metaFilePath = findMetaFilebyPath(filePath, TSCORE.metaFileExt);
+      let currentVersion = TSCORE.Config.DefaultSettings.appVersion + "." + TSCORE.Config.DefaultSettings.appBuild;
+      if (!metaFilePath) {
+        let name = TSCORE.Utils.baseName(filePath) + TSCORE.metaFileExt;
+        let parentFolder = TSCORE.TagUtils.extractParentDirectoryPath(filePath);
+        metaFilePath = parentFolder + TSCORE.dirSeparator + TSCORE.metaFolder + TSCORE.dirSeparator + name;
+        let entry = {
+          "name": name,
+          "isFile": true,
+          "path": metaFilePath,
+        };
+        TSCORE.metaFileList.push(entry);
+        metaData.appVersionCreated = currentVersion;
+      }
+
+      metaData.appName = TSCORE.Config.DefaultSettings.appName;
+      metaData.appVersionUpdated = currentVersion;
+      metaData.lastUpdated = new Date();
+
+      let content = JSON.stringify(metaData);
+      TSCORE.IO.saveTextFilePromise(metaFilePath, content, true);
+    }
+
+    static updateMetaData(sourceFilePath, targetFilePath) {
+      if (!targetFilePath || !sourceFilePath) {
+        return false;
+      }
+
+      if (TSCORE.IO.stopWatchingDirectories) {
+        TSCORE.IO.stopWatchingDirectories();
+      }
+
+      let fileInMetaFileList = false;
+      let sourceFileName = TSCORE.Utils.baseName(sourceFilePath);
+      let pathSource = TSCORE.Utils.dirName(sourceFilePath);
+      let pathTarget = TSCORE.Utils.dirName(targetFilePath);
+      let metaIndexForRemove = [];
+      TSCORE.metaFileList.forEach((metaElement, index) => {
+        if (metaElement.name.indexOf(sourceFileName) === 0) {
+          fileInMetaFileList = true;
+
+          let targetMetaName = TSCORE.Utils.baseName(targetFilePath) + "." + TSCORE.TagUtils.extractFileExtension(metaElement.name);
+          let targetMetaFolderPath = pathTarget + TSCORE.dirSeparator + TSCORE.metaFolder;
+          let targetMetaFilePath = targetMetaFolderPath + TSCORE.dirSeparator + targetMetaName;
+          let sourceMetaFilePath = pathSource + TSCORE.dirSeparator + TSCORE.metaFolder + TSCORE.dirSeparator + metaElement.name;
+
+          if (pathSource === pathTarget) {
+            metaElement.name = targetMetaName;
+            metaElement.path = targetMetaFilePath;
+          } else {
+            metaIndexForRemove.push(index);
+          }
+
+          createMetaFolderPromise(pathTarget).then(() => {
+            TSCORE.IO.renameFilePromise(sourceMetaFilePath, targetMetaFilePath).then(() => {
+              console.log('Meta file moved/renamed successfully to ' + targetMetaFilePath);
+            });
+          });
+        }
+      });
+
+      // file is probably from a search list
+      if (!fileInMetaFileList) {
+        let sourceMetaPathTemplate = pathSource + TSCORE.dirSeparator + TSCORE.metaFolder + TSCORE.dirSeparator + TSCORE.Utils.baseName(sourceFilePath);
+        let targetMetaPathTemplate = pathTarget + TSCORE.dirSeparator + TSCORE.metaFolder + TSCORE.dirSeparator + TSCORE.Utils.baseName(targetFilePath);
+        TSCORE.IO.renameFilePromise(sourceMetaPathTemplate + TSCORE.metaFileExt, targetMetaPathTemplate + TSCORE.metaFileExt);
+        TSCORE.IO.renameFilePromise(sourceMetaPathTemplate + TSCORE.thumbFileExt, targetMetaPathTemplate + TSCORE.thumbFileExt);
+        TSCORE.IO.renameFilePromise(sourceMetaPathTemplate + TSCORE.contentFileExt, targetMetaPathTemplate + TSCORE.contentFileExt);
+      }
+
+      // Cleaning up meteFileList
+      if (metaIndexForRemove.length > 0) {
+        TSCORE.metaFileList.forEach((metaElement, index) => {
+          if (index in metaIndexForRemove) {
+            TSCORE.metaFileList.splice(index, 1);
+          }
+        });
+      }
+    }
+
+    // Deletes the meta data, the thumbs and the content file
+    static deleteMetaData(sourceFileName) {
+      if (!sourceFileName) {
+        return false;
+      }
+
+      let name = TSCORE.Utils.baseName(sourceFileName);
+      let fileInMetaFileList = false;
+      TSCORE.metaFileList.forEach((element, index) => {
+        if (element.name.indexOf(name) >= 0) {
+          fileInMetaFileList = true;
+          // Deleting meta.json, thumb.png and content.txt files
+          TSCORE.IO.deleteFilePromise(element.path).then(() => {
+            TSCORE.metaFileList.splice(index, 1);
+          });
+        }
+      });
+      if (!fileInMetaFileList) { // file is probably from a search list
+        let sourcePathTemplate = TSCORE.Utils.dirName(sourceFileName) + TSCORE.dirSeparator + TSCORE.metaFolder + TSCORE.dirSeparator + TSCORE.Utils.baseName(sourceFileName);
+        TSCORE.IO.deleteFilePromise(sourcePathTemplate + TSCORE.metaFileExt);
+        TSCORE.IO.deleteFilePromise(sourcePathTemplate + TSCORE.thumbFileExt);
+        TSCORE.IO.deleteFilePromise(sourcePathTemplate + TSCORE.contentFileExt);
+      }
+    }
+
+    // Copy only the meta data without the thumbs and extracted text content
+    static copyMetaData(sourceFileName, targetFileName) {
+      if (!sourceFileName || !targetFileName) {
+        return false;
+      }
+
+      let pathSource = TSCORE.Utils.dirName(sourceFileName);
+      let pathTarget = TSCORE.Utils.dirName(targetFileName);
+
+      if (pathTarget.lastIndexOf(TSCORE.dirSeparator) === 0) {
+        pathSource = pathSource + TSCORE.dirSeparator;
+      }
+
+      if (pathSource !== pathTarget) {
+        let sourceFilePath = pathSource + TSCORE.dirSeparator + TSCORE.metaFolder + TSCORE.dirSeparator + TSCORE.Utils.baseName(sourceFileName) + TSCORE.metaFileExt;
+        let targetFilePath = pathTarget + TSCORE.dirSeparator + TSCORE.metaFolder + TSCORE.dirSeparator + TSCORE.Utils.baseName(targetFileName) + TSCORE.metaFileExt;
+        createMetaFolderPromise(pathTarget).then(() => {
+          TSCORE.IO.copyFilePromise(sourceFilePath, targetFilePath);
+        });
+      }
+    }
+
+    static loadThumbnailPromise(filePath) {
+      return new Promise((resolve, reject) => {
+        if (TSCORE.PRO && TSCORE.Config.getEnableMetaData() && TSCORE.Config.getUseGenerateThumbnails()) {
+          TSCORE.PRO.getThumbnailURLPromise(filePath).then((dataURL) => {
+            resolve(dataURL);
+          }).catch((err) => {
+            console.warn("Thumb generation failed for: " + filePath + " failed with: " + err);
+            resolve(filePath);
+          });
+        } else {
+          let thumbFilePath = getThumbFileLocation(filePath);
+          if (thumbFilePath && isChrome) {
+            thumbFilePath = "file://" + thumbFilePath;
+          }
+          TSCORE.IO.getPropertiesPromise(thumbFilePath).then((stats) => {
+            if (!stats) { // Thumbnails does not exists
+              let fileExt = TSCORE.TagUtils.extractFileExtension(filePath);
+              if (supportedImageExtensions.indexOf(fileExt) >= 0) {
+                if (isChrome) {
+                  filePath = "file://" + filePath;
+                }
+                generateImageThumbnail(filePath).then((dataURL) => {
+                  resolve(dataURL);
+                }).catch(() => {
+                  this._resolve();
+                });
+              } else {
+                this._resolve();
+              }
+            } else { // Thumbnails exists
+              resolve(thumbFilePath);
+            }
+          });
+        }
+      });
+    }
+
+    static _getThumbFileLocation(filePath) {
+      let metaFolder = TSCORE.TagUtils.extractContainingDirectoryPath(filePath) + TSCORE.dirSeparator + TSCORE.metaFolder;
+      return metaFolder + TSCORE.dirSeparator + TSCORE.TagUtils.extractFileName(filePath) + TSCORE.thumbFileExt;
+    }
+
+    // should be in sync with the function from the PRO version
+    static _generateImageThumbnail(fileURL) {
+      return new Promise((resolve, reject) => {
+        let canvas = document.createElement("canvas");
+        let ctx = canvas.getContext("2d");
+        let img = new Image();
+
+        let errorHandler = (err) => {
+          console.warn("Error while generating thumbnail for: " + fileURL + " - " + JSON.stringify(err));
+          resolve("");
+        };
+
+        try {
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            if (img.width >= img.height) {
+              canvas.width = maxTmbSize;
+              canvas.height = (maxTmbSize * img.height) / img.width;
+            } else {
+              canvas.height = maxTmbSize;
+              canvas.width = (maxTmbSize * img.width) / img.height;
+            }
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL("image/png"));
+            img = null;
+            canvas = null;
+          };
+          img.src = fileURL;
+        } catch (err) {
+          errorHandler(err);
+        }
+      });
+    }
+
+    static loadMetaFileJsonPromise(entry) {
+      return new Promise((resolve, reject) => {
+        let filePath = entry.path;
+        let parentFolder = TSCORE.TagUtils.extractParentDirectoryPath(filePath);
+        let metaFileJson = findMetaFilebyPath(filePath, TSCORE.metaFileExt);
+        if (metaFileJson) { // file in the current directory
+          TSCORE.IO.getFileContentPromise(metaFileJson, "text").then((result) => {
+            let metaData = JSON.parse(result);
+            entry.meta.metaData = metaData;
+            resolve(filePath);
+          }).catch((err) => {
+            console.warn("Getting meta information failed for: " + filePath);
+            resolve(filePath);
+          });
+        } else if (TSCORE.currentPath !== parentFolder) { // file in search results
+          metaFileJson = parentFolder + TSCORE.dirSeparator + TSCORE.metaFolder + TSCORE.dirSeparator + TSCORE.Utils.baseName(filePath) + TSCORE.metaFileExt;
+          TSCORE.IO.getFileContentPromise(metaFileJson, "text").then((result) => {
+            let metaData = JSON.parse(result);
+            entry.meta.metaData = metaData;
+            resolve(filePath);
+          }).catch((err) => {
+            console.warn("Getting meta information failed for: " + filePath);
+            resolve(filePath);
+          });
+        } else {
+          console.log("No meta information found for: " + filePath);
+          resolve(filePath);
+        }
+      });
+    }
+
+    static _loadMetaFileJsonPromiseOld(entry) {
+      return new Promise((resolve, reject) => {
+        let filePath = entry.path;
+        let metaFileJson = findMetaFilebyPath(filePath, TSCORE.metaFileExt);
+        if (metaFileJson) {
+          TSCORE.IO.getFileContentPromise(metaFileJson, "text").then((result) => {
+            let metaData = JSON.parse(result);
+            entry.meta.metaData = metaData;
+            resolve(filePath);
+          }).catch((err) => {
+            console.warn("Getting meta information failed for: " + filePath);
+            resolve(filePath);
+          });
+        } else {
+          console.log("No meta information found for: " + filePath);
+          resolve(filePath);
+        }
+      });
+    }
+
+    static getTagsFromMetaFile(filePath) {
+      let tags = [];
+      let metaObj = findMetaObjectFromFileList(filePath);
+      if (metaObj && metaObj.metaData && metaObj.metaData.tags) {
+        metaObj.metaData.tags.forEach((elem) => {
+          tags.push({
+            tag: elem.title,
+            filepath: filePath,
+            style: elem.style
           });
         });
       }
-    });
-
-    // file is probably from a search list
-    if (!fileInMetaFileList) {
-      var sourceMetaPathTemplate = pathSource + TSCORE.dirSeparator + TSCORE.metaFolder + TSCORE.dirSeparator + TSCORE.Utils.baseName(sourceFilePath);
-      var targetMetaPathTemplate = pathTarget + TSCORE.dirSeparator + TSCORE.metaFolder + TSCORE.dirSeparator + TSCORE.Utils.baseName(targetFilePath);
-      TSCORE.IO.renameFilePromise(sourceMetaPathTemplate + TSCORE.metaFileExt, targetMetaPathTemplate + TSCORE.metaFileExt);
-      TSCORE.IO.renameFilePromise(sourceMetaPathTemplate + TSCORE.thumbFileExt, targetMetaPathTemplate + TSCORE.thumbFileExt);
-      TSCORE.IO.renameFilePromise(sourceMetaPathTemplate + TSCORE.contentFileExt, targetMetaPathTemplate + TSCORE.contentFileExt);
+      return tags;
     }
 
-    // Cleaning up meteFileList
-    if (metaIndexForRemove.length > 0) {
-      TSCORE.metaFileList.forEach(function(metaElement, index) {
-        if (index in metaIndexForRemove) {
-          TSCORE.metaFileList.splice(index, 1);
-        }
-      });
-    }
-  }
-
-  // Deletes the meta data, the thumbs and the content file
-  function deleteMetaData(sourceFileName) {
-    if (!sourceFileName) {
-      return false;
-    }
-
-    var name = TSCORE.Utils.baseName(sourceFileName);
-    var fileInMetaFileList = false;
-    TSCORE.metaFileList.forEach(function(element, index) {
-      if (element.name.indexOf(name) >= 0) {
-        fileInMetaFileList = true;
-        // Deleting meta.json, thumb.png and content.txt files
-        TSCORE.IO.deleteFilePromise(element.path).then(function() {
-          TSCORE.metaFileList.splice(index, 1);
-        });
+    static getDescriptionFromMetaFile(filePath) {
+      let metaObj = findMetaObjectFromFileList(filePath);
+      let description;
+      if (metaObj && metaObj.metaData && metaObj.metaData.description) {
+        description = metaObj.metaData.description;
+        return description;
       }
-    });
-    if (!fileInMetaFileList) { // file is probably from a search list
-      var sourcePathTemplate = TSCORE.Utils.dirName(sourceFileName) + TSCORE.dirSeparator + TSCORE.metaFolder + TSCORE.dirSeparator + TSCORE.Utils.baseName(sourceFileName);
-      TSCORE.IO.deleteFilePromise(sourcePathTemplate + TSCORE.metaFileExt);
-      TSCORE.IO.deleteFilePromise(sourcePathTemplate + TSCORE.thumbFileExt);
-      TSCORE.IO.deleteFilePromise(sourcePathTemplate + TSCORE.contentFileExt);
-    }
-  }
-
-  // Copy only the meta data without the thumbs and extracted text content
-  function copyMetaData(sourceFileName, targetFileName) {
-    if (!sourceFileName || !targetFileName) {
-      return false;
     }
 
-    var pathSource = TSCORE.Utils.dirName(sourceFileName);
-    var pathTarget = TSCORE.Utils.dirName(targetFileName);
-
-    if (pathTarget.lastIndexOf(TSCORE.dirSeparator) === 0) {
-      pathSource = pathSource + TSCORE.dirSeparator;
-    }
-
-    if (pathSource !== pathTarget) {
-      var sourceFilePath = pathSource + TSCORE.dirSeparator + TSCORE.metaFolder + TSCORE.dirSeparator + TSCORE.Utils.baseName(sourceFileName) + TSCORE.metaFileExt;
-      var targetFilePath = pathTarget + TSCORE.dirSeparator + TSCORE.metaFolder + TSCORE.dirSeparator + TSCORE.Utils.baseName(targetFileName) + TSCORE.metaFileExt;
-      createMetaFolderPromise(pathTarget).then(function() {
-        TSCORE.IO.copyFilePromise(sourceFilePath, targetFilePath);
-      });
-    }
-  }
-
-  function loadThumbnailPromise(filePath) {
-    return new Promise(function(resolve, reject) {
-      if (TSCORE.PRO && TSCORE.Config.getEnableMetaData() && TSCORE.Config.getUseGenerateThumbnails()) {
-        TSCORE.PRO.getThumbnailURLPromise(filePath).then(function(dataURL) {
-          resolve(dataURL);
-        }).catch(function(err) {
-          console.warn("Thumb generation failed for: " + filePath + " failed with: " + err);
-          resolve(filePath);
-        });
-      } else {
-        var thumbFilePath = getThumbFileLocation(filePath);
-        if (thumbFilePath && isChrome) {
-          thumbFilePath = "file://" + thumbFilePath;
-        }
-        TSCORE.IO.getPropertiesPromise(thumbFilePath).then(function(stats) {
-          if (!stats) { // Thumbnails does not exists
-            var fileExt = TSCORE.TagUtils.extractFileExtension(filePath);
-            if (supportedImageExtensions.indexOf(fileExt) >= 0) {
-              if (isChrome) {
-                filePath = "file://" + filePath;
-              }
-              generateImageThumbnail(filePath).then(function(dataURL) {
-                resolve(dataURL);
-              }).catch(function() {
-                resolve();
-              });
-            } else {
-              resolve();
-            }
-          } else { // Thumbnails exists
-            resolve(thumbFilePath);
-          }
-        });
-      }
-    });
-  }
-
-  function getThumbFileLocation(filePath) {
-    var metaFolder = TSCORE.TagUtils.extractContainingDirectoryPath(filePath) + TSCORE.dirSeparator + TSCORE.metaFolder;
-    return metaFolder + TSCORE.dirSeparator + TSCORE.TagUtils.extractFileName(filePath) + TSCORE.thumbFileExt;
-  }
-
-  // should be in sync with the function from the PRO version
-  function generateImageThumbnail(fileURL) {
-    return new Promise(function(resolve, reject) {
-      var canvas = document.createElement("canvas");
-      var ctx = canvas.getContext("2d");
-      var img = new Image();
-
-      var errorHandler = function(err) {
-        console.warn("Error while generating thumbnail for: " + fileURL + " - " + JSON.stringify(err));
-        resolve("");
-      };
-
-      try {
-        img.crossOrigin = 'anonymous';
-        img.onload = function() {
-          if (img.width >= img.height) {
-            canvas.width = maxTmbSize;
-            canvas.height = (maxTmbSize * img.height) / img.width;
-          } else {
-            canvas.height = maxTmbSize;
-            canvas.width = (maxTmbSize * img.width) / img.height;
-          }
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL("image/png"));
-          img = null;
-          canvas = null;
+    static addMetaDescriptionToFile(filePath, description) {
+      let metaObj = findMetaObjectFromFileList(filePath);
+      if (!metaObj) {
+        metaObj = {
+          thumbnailPath: "",
+          metaData: null,
         };
-        img.src = fileURL;
-      } catch (err) {
-        errorHandler(err);
       }
-    });
-  }
 
-  function loadMetaFileJsonPromise(entry) {
-    return new Promise(function(resolve, reject) {
-      var filePath = entry.path;
-      var parentFolder = TSCORE.TagUtils.extractParentDirectoryPath(filePath);
-      var metaFileJson = findMetaFilebyPath(filePath, TSCORE.metaFileExt);
-      if (metaFileJson) { // file in the current directory
-        TSCORE.IO.getFileContentPromise(metaFileJson, "text").then(function(result) {
-          var metaData = JSON.parse(result);
-          entry.meta.metaData = metaData;
-          resolve(filePath);
-        }).catch(function(err) {
-          console.warn("Getting meta information failed for: " + filePath);
-          resolve(filePath);
-        });
-      } else if (TSCORE.currentPath !== parentFolder) { // file in search results
-        metaFileJson = parentFolder + TSCORE.dirSeparator + TSCORE.metaFolder + TSCORE.dirSeparator + TSCORE.Utils.baseName(filePath) + TSCORE.metaFileExt;
-        TSCORE.IO.getFileContentPromise(metaFileJson, "text").then(function(result) {
-          var metaData = JSON.parse(result);
-          entry.meta.metaData = metaData;
-          resolve(filePath);
-        }).catch(function(err) {
-          console.warn("Getting meta information failed for: " + filePath);
-          resolve(filePath);
-        });
-      } else {
-        console.log("No meta information found for: " + filePath);
-        resolve(filePath);
+      if (!metaObj.metaData) {
+        metaObj.metaData = {
+          description: description
+        };
       }
-    });
-  }
-
-  function loadMetaFileJsonPromiseOld(entry) {
-    return new Promise(function(resolve, reject) {
-      var filePath = entry.path;
-      var metaFileJson = findMetaFilebyPath(filePath, TSCORE.metaFileExt);
-      if (metaFileJson) {
-        TSCORE.IO.getFileContentPromise(metaFileJson, "text").then(function(result) {
-          var metaData = JSON.parse(result);
-          entry.meta.metaData = metaData;
-          resolve(filePath);
-        }).catch(function(err) {
-          console.warn("Getting meta information failed for: " + filePath);
-          resolve(filePath);
-        });
-      } else {
-        console.log("No meta information found for: " + filePath);
-        resolve(filePath);
-      }
-    });
-  }
-
-  function getTagsFromMetaFile(filePath) {
-    var tags = [];
-    var metaObj = findMetaObjectFromFileList(filePath);
-    if (metaObj && metaObj.metaData && metaObj.metaData.tags) {
-      metaObj.metaData.tags.forEach(function(elem) {
-        tags.push({
-          tag: elem.title,
-          filepath: filePath,
-          style: elem.style
-        });
-      });
-    }
-    return tags;
-  }
-
-  function getDescriptionFromMetaFile(filePath) {
-    var metaObj = findMetaObjectFromFileList(filePath);
-    var description;
-    if (metaObj && metaObj.metaData && metaObj.metaData.description) {
-      description = metaObj.metaData.description;
-      return description;
-    }
-  }
-
-  function addMetaDescriptionToFile(filePath, description) {
-    var metaObj = findMetaObjectFromFileList(filePath);
-    if (!metaObj) {
-      metaObj = {
-        thumbnailPath: "",
-        metaData: null,
-      };
-    }
-
-    if (!metaObj.metaData) {
-      metaObj.metaData = {
-        description: description
-      };
-    }
-    metaObj.metaData.description = description;
-    saveMetaData(filePath, metaObj.metaData);
-  }
-
-  //meta tag utils
-  function addMetaTags(filePath, tags) {
-    var metaObj = findMetaObjectFromFileList(filePath);
-    if (!metaObj) {
-      metaObj = {
-        thumbnailPath: "",
-        metaData: null,
-      };
-    }
-
-    if (!metaObj.metaData) {
-      metaObj.metaData = {
-        tags: [],
-        description: ''
-      };
-    }
-
-    if (!metaObj.metaData.tags) {
-      metaObj.metaData.tags = [];
-    }
-
-    tags.forEach(function(element) {
-      var newTag = {
-        "title": element,
-        "type": "sidecar",
-        "style": TSCORE.generateTagStyle(TSCORE.Config.findTag(element))
-      };
-      var isNewTag = true;
-      metaObj.metaData.tags.forEach(function(oldTag) {
-        if (oldTag.title === element) {
-          isNewTag = false;
-        }
-      });
-      if (isNewTag) {
-        metaObj.metaData.tags.push(newTag);
-      }
-    });
-
-    saveMetaData(filePath, metaObj.metaData);
-  }
-
-  function renameMetaTag(filePath, oldTag, newTag) {
-    var metaObj = findMetaObjectFromFileList(filePath);
-    if (metaObj.metaData) {
-      metaObj.metaData.tags.forEach(function(tag, index) {
-        if (tag.title === oldTag) {
-          tag.title = newTag;
-        }
-      });
+      metaObj.metaData.description = description;
       saveMetaData(filePath, metaObj.metaData);
     }
-  }
 
-  function removeMetaTag(filePath, tagName) {
-    var metaObj = findMetaObjectFromFileList(filePath);
-    if (metaObj.metaData) {
-      metaObj.metaData.tags.forEach(function(tag, index) {
-        if (tag.title === tagName) {
-          metaObj.metaData.tags.splice(index, 1);
+    //meta tag utils
+    static addMetaTags(filePath, tags) {
+      let metaObj = findMetaObjectFromFileList(filePath);
+      if (!metaObj) {
+        metaObj = {
+          thumbnailPath: "",
+          metaData: null,
+        };
+      }
+
+      if (!metaObj.metaData) {
+        metaObj.metaData = {
+          tags: [],
+          description: ''
+        };
+      }
+
+      if (!metaObj.metaData.tags) {
+        metaObj.metaData.tags = [];
+      }
+
+      tags.forEach((element) => {
+        let newTag = {
+          "title": element,
+          "type": "sidecar",
+          "style": TSCORE.generateTagStyle(TSCORE.Config.findTag(element))
+        };
+        let isNewTag = true;
+        metaObj.metaData.tags.forEach((oldTag) => {
+          if (oldTag.title === element) {
+            isNewTag = false;
+          }
+        });
+        if (isNewTag) {
+          metaObj.metaData.tags.push(newTag);
         }
       });
-      var metaFileJson = findMetaFilebyPath(filePath, TSCORE.metaFileExt);
-      if (metaFileJson) {
-        var content = JSON.stringify(metaObj.metaData);
-        TSCORE.IO.saveTextFilePromise(metaFileJson, content, true);
+
+      saveMetaData(filePath, metaObj.metaData);
+    }
+
+    static renameMetaTag(filePath, oldTag, newTag) {
+      let metaObj = findMetaObjectFromFileList(filePath);
+      if (metaObj.metaData) {
+        metaObj.metaData.tags.forEach((tag, index) => {
+          if (tag.title === oldTag) {
+            tag.title = newTag;
+          }
+        });
+        saveMetaData(filePath, metaObj.metaData);
       }
+    }
+
+    static removeMetaTag(filePath, tagName) {
+      let metaObj = findMetaObjectFromFileList(filePath);
+      if (metaObj.metaData) {
+        metaObj.metaData.tags.forEach((tag, index) => {
+          if (tag.title === tagName) {
+            metaObj.metaData.tags.splice(index, 1);
+          }
+        });
+        let metaFileJson = findMetaFilebyPath(filePath, TSCORE.metaFileExt);
+        if (metaFileJson) {
+          let content = JSON.stringify(metaObj.metaData);
+          TSCORE.IO.saveTextFilePromise(metaFileJson, content, true);
+        }
+      }
+    }
+
+    static loadFolderMetaDataPromise(path) {
+      return new Promise((resolve, reject) => {
+        let metadataPath = 'file://' + path + TSCORE.dirSeparator + TSCORE.metaFolder + TSCORE.dirSeparator + TSCORE.metaFolderFile;
+        if (isWeb) {
+          metadataPath = path + TSCORE.dirSeparator + TSCORE.metaFolder + TSCORE.dirSeparator + TSCORE.metaFolderFile;
+        }
+
+        TSCORE.IO.getFileContentPromise(metadataPath, "text").then((content) => {
+          console.log('Location Metadata: ' + content);
+
+          // Cleaning up
+          let UTF8_BOM = "\ufeff";
+          if (content.indexOf(UTF8_BOM) === 0) {
+            content = content.substring(1, content.length);
+          }
+          let metadata = JSON.parse(content);
+          resolve(metadata);
+        }).catch((err) => {
+          if (TSCORE.PRO && TSCORE.PRO.Directory.getFolderMetaTemplate) {
+            resolve(TSCORE.PRO.Directory.getFolderMetaTemplate());
+          } else {
+            reject("loadFolderMetaDataPromise: Error reading " + metadataPath);
+          }
+        });
+      });
+    }
+
+    static createMetaFolderPromise(dirPath) {
+      return new Promise((resolve, reject) => {
+        if (dirPath.lastIndexOf(TSCORE.metaFolder) >= dirPath.length - TSCORE.metaFolder.length) {
+          console.log("Can not create meta folder in a meta folder");
+          this._reject();
+          return;
+        }
+        let metaDirPath = dirPath + TSCORE.dirSeparator + TSCORE.metaFolder;
+        TSCORE.IO.createDirectoryPromise(metaDirPath).then(() => {
+          console.log("Metafolder created: " + metaDirPath);
+          resolve(metaDirPath);
+        }).catch((error) => {
+          resolve(metaDirPath);
+          //reject("Creating metafolder failed, it was probably already created " + error);
+        });
+      });
     }
   }
 
-  function loadFolderMetaDataPromise(path) {
-    return new Promise(function(resolve, reject) {
-      var metadataPath = 'file://' + path + TSCORE.dirSeparator + TSCORE.metaFolder + TSCORE.dirSeparator + TSCORE.metaFolderFile;
-      if (isWeb) {
-        metadataPath = path + TSCORE.dirSeparator + TSCORE.metaFolder + TSCORE.dirSeparator + TSCORE.metaFolderFile;
-      }
-
-      TSCORE.IO.getFileContentPromise(metadataPath, "text").then(function(content) {
-        console.log('Location Metadata: ' + content);
-
-        // Cleaning up
-        var UTF8_BOM = "\ufeff";
-        if (content.indexOf(UTF8_BOM) === 0) {
-          content = content.substring(1, content.length);
-        }
-        var metadata = JSON.parse(content);
-        resolve(metadata);
-      }).catch(function(err) {
-        if (TSCORE.PRO && TSCORE.PRO.Directory.getFolderMetaTemplate) {
-          resolve(TSCORE.PRO.Directory.getFolderMetaTemplate());
-        } else {
-          reject("loadFolderMetaDataPromise: Error reading " + metadataPath);
-        }
-      });
-    });
-  }
-
-  function createMetaFolderPromise(dirPath) {
-    return new Promise(function(resolve, reject) {
-      if (dirPath.lastIndexOf(TSCORE.metaFolder) >= dirPath.length - TSCORE.metaFolder.length) {
-        console.log("Can not create meta folder in a meta folder");
-        reject();
-        return;
-      }
-      var metaDirPath = dirPath + TSCORE.dirSeparator + TSCORE.metaFolder;
-      TSCORE.IO.createDirectoryPromise(metaDirPath).then(function() {
-        console.log("Metafolder created: " + metaDirPath);
-        resolve(metaDirPath);
-      }).catch(function(error) {
-        resolve(metaDirPath);
-        //reject("Creating metafolder failed, it was probably already created " + error);
-      });
-    });
-  }
-
-  exports.getDirectoryMetaInformation = getDirectoryMetaInformation;
-  exports.findMetaFilebyPath = findMetaFilebyPath;
-  exports.findMetaObjectFromFileList = findMetaObjectFromFileList;
-  exports.saveMetaData = saveMetaData;
-  exports.deleteMetaData = deleteMetaData;
-  exports.updateMetaData = updateMetaData;
-  exports.copyMetaData = copyMetaData;
-  exports.loadMetaFileJsonPromise = loadMetaFileJsonPromise;
-  exports.loadThumbnailPromise = loadThumbnailPromise;
-  exports.getTagsFromMetaFile = getTagsFromMetaFile;
-  exports.getDescriptionFromMetaFile = getDescriptionFromMetaFile;
-  exports.addMetaTags = addMetaTags;
-  exports.addMetaDescriptionToFile = addMetaDescriptionToFile;
-  exports.renameMetaTag = renameMetaTag;
-  exports.removeMetaTag = removeMetaTag;
-  exports.loadFolderMetaDataPromise = loadFolderMetaDataPromise;
-  exports.createMetaFolderPromise = createMetaFolderPromise;
+  exports.TSMeta = TSMeta;
 });
