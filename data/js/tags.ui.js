@@ -6,8 +6,6 @@
 define((require, exports, module) => {
   'use strict';
 
-  console.log('Loading tags.ui.js...');
-
   const locationTagGroupKey = 'LTG';
   const calculatedTagGroupKey = 'CTG';
 
@@ -57,7 +55,11 @@ define((require, exports, module) => {
   
   class TSTags {
 
-    static initUI() {
+    constructor() {
+      console.log('Initializing tags.ui.js...');
+    }
+
+    initUI() {
       $('#extMenuAddTagAsFilter').click(() => {
       });
 
@@ -192,7 +194,7 @@ define((require, exports, module) => {
       });
     }
 
-    static _importTagGroups() {
+    _importTagGroups() {
       console.log("tagGroupMenuImportTags");
       $('#jsonImportFileInput').click();
       $('#jsonImportFileInput').on('change', (selection) => {
@@ -216,12 +218,12 @@ define((require, exports, module) => {
       });
     }
 
-    static _createTagGroup() {
+    _createTagGroup() {
       TSCORE.Config.createTagGroup(TSCORE.selectedTagData, $('#newTagGroupName').val(), $('#tagGroupBackgroundColor').val(), $('#tagGroupForegroundColor').val());
       this.generateTagGroups();
     }
 
-    static generateTagGroups() {
+    generateTagGroups() {
       console.log('Generating TagGroups...');
       let $tagGroupsContent = $('#tagGroupsContent');
       $tagGroupsContent.children().remove();
@@ -285,7 +287,7 @@ define((require, exports, module) => {
               };
             },(tag.title)); // jshint ignore:line
           }
-          tag.style = this._generateTagStyle(tag);
+          tag.style = this.generateTagStyle(tag);
         }
       }
       $tagGroupsContent.html(tagGroupsTmpl({
@@ -391,10 +393,10 @@ define((require, exports, module) => {
         'style': 'margin-top: 0px; display: block; margin-left: -8px; color: #1DD19F;',
         'text': $.i18n.t('ns.common:importTags'),
         'data-i18n': 'ns.common:importTags;[title]ns.common:importTagsTooltip'
-      }).on('click', importTagGroups));
+      }).on('click', this._importTagGroups));
     }
 
-    static _generateTagValue(tagData) {
+    _generateTagValue(tagData) {
       let tagValue = tagData.title;
       let d;
       if (tagData.type === 'smart') {
@@ -449,13 +451,13 @@ define((require, exports, module) => {
       return tagValue;
     }
 
-    static openTagMenu(tagButton, tag, filePath) {
+    openTagMenu(tagButton, tag, filePath) {
       TSCORE.selectedFiles.push(filePath);
       TSCORE.selectedTag = tag;
     }
 
     // Helper function generating tag buttons
-    static generateTagButtons(commaSeparatedTags, filePath) {
+    generateTagButtons(commaSeparatedTags, filePath) {
       //console.log("Creating tags...");
       let tagString = '' + commaSeparatedTags;
       let context = {
@@ -467,7 +469,7 @@ define((require, exports, module) => {
           context.tags.push({
             filepath: filePath,
             tag: tags[i],
-            style: _generateTagStyle(TSCORE.Config.findTag(tags[i]))
+            style: this.generateTagStyle(TSCORE.Config.findTag(tags[i]))
           });
         }
       }
@@ -476,7 +478,7 @@ define((require, exports, module) => {
         for (let i = 0; i < metaTags.length; i++) {
           let tag = metaTags[i];
           if (!tag.style) {
-            tag.style = _generateTagStyle(TSCORE.Config.findTag(tag.tag));
+            tag.style = this.generateTagStyle(TSCORE.Config.findTag(tag.tag));
           }
         }
 
@@ -486,7 +488,7 @@ define((require, exports, module) => {
     }
 
     // Get the color for a tag
-    static _generateTagStyle(tagObject) {
+    generateTagStyle(tagObject) {
       let tagTextColor = TSCORE.Config.getDefaultTagTextColor();
       let tagColor = TSCORE.Config.getDefaultTagColor();
 
@@ -500,7 +502,7 @@ define((require, exports, module) => {
       return 'color: ' + tagTextColor + ' !important; background-color: ' + tagColor + ' !important;';
     }
 
-    static showDialogTagCreate() {
+    showDialogTagCreate() {
       $('#newTagTitle').val('');
       $('#formAddTags').validator();
       $('#formAddTags').submit((e) => {
@@ -527,7 +529,7 @@ define((require, exports, module) => {
       });
     }
 
-    static _showImportTagsDialog(tagGroups) {
+    _showImportTagsDialog(tagGroups) {
       require(['text!templates/ImportTagsDialog.html'], (uiTPL) => {
 
         if ($('#dialogImportTags').length < 1) {
@@ -554,7 +556,7 @@ define((require, exports, module) => {
       });
     }
 
-    static showDialogEditTagGroup() {
+    showDialogEditTagGroup() {
       $('#colorChangesToAllTags').prop('checked', false);
 
       let $editTagGroupBackgroundColorChooser = $('#editTagGroupBackgroundColorChooser');
@@ -617,7 +619,7 @@ define((require, exports, module) => {
       });
     }
 
-    static showDialogTagGroupCreate() {
+    showDialogTagGroupCreate() {
       let $tagGroupBackgroundColorChooser = $('#tagGroupBackgroundColorChooser');
       let $tagGroupBackgroundColor = $('#tagGroupBackgroundColor');
       $tagGroupBackgroundColorChooser.simplecolorpicker({
@@ -667,7 +669,7 @@ define((require, exports, module) => {
       });
     }
 
-    static showTagEditInTreeDialog() {
+    showTagEditInTreeDialog() {
       $('#tagInTreeName').val(TSCORE.selectedTagData.title);
       $('#tagInTreeKeyBinding').val(TSCORE.selectedTagData.keyBinding);
       let $tagColorChooser = $('#tagColorChooser');
@@ -715,7 +717,7 @@ define((require, exports, module) => {
       });
     }
 
-    static showAddTagsDialog() {
+    showAddTagsDialog() {
       if (!TSCORE.selectedFiles[0]) {
         TSCORE.showAlertDialog("Please select a file first.", "Tagging not possible!");
         return;
@@ -732,7 +734,7 @@ define((require, exports, module) => {
         minimumInputLength: 1,
         selectOnBlur: true,
         formatSelectionCssClass: (tag, container) => {
-          let style = _generateTagStyle(TSCORE.Config.findTag(tag.text));
+          let style = this.generateTagStyle(TSCORE.Config.findTag(tag.text));
           if (style) {
             $(container).parent().attr("style", style);
           }

@@ -630,7 +630,7 @@ define(function(require, exports, module) {
         minimumInputLength: 1,
         selectOnBlur: true,
         formatSelectionCssClass: function(tag, container) {
-          var style = TSCORE.generateTagStyle(TSCORE.Config.findTag(tag.text));
+          var style = TSCORE.TagsUI.generateTagStyle(TSCORE.Config.findTag(tag.text));
           if (style) {
             $(container).parent().attr("style", style);
           }

@@ -824,6 +824,7 @@ define(function(require, exports) {
       'text!templates/OptionsDialog.html',
       'tsoptions'
     ], function(uiTPL, controller) {
+      controller = controller.TSOptions;
       if ($('#dialogOptions').length < 1) {
         var uiTemplate = Handlebars.compile(uiTPL);
         $('body').append(uiTemplate({isProVersion: TSCORE.PRO ? true : false, isElectron: isElectron ? true : false}));

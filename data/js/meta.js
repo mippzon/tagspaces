@@ -49,7 +49,7 @@ define((require, exports, module) => {
     }
 
     static saveMetaData(filePath, metaData) {
-      let metaFilePath = findMetaFilebyPath(filePath, TSCORE.metaFileExt);
+      let metaFilePath = this.findMetaFilebyPath(filePath, TSCORE.metaFileExt);
       let currentVersion = TSCORE.Config.DefaultSettings.appVersion + "." + TSCORE.Config.DefaultSettings.appBuild;
       if (!metaFilePath) {
         let name = TSCORE.Utils.baseName(filePath) + TSCORE.metaFileExt;
@@ -186,7 +186,7 @@ define((require, exports, module) => {
             resolve(filePath);
           });
         } else {
-          let thumbFilePath = getThumbFileLocation(filePath);
+          let thumbFilePath = this._getThumbFileLocation(filePath);
           if (thumbFilePath && isChrome) {
             thumbFilePath = "file://" + thumbFilePath;
           }
@@ -200,10 +200,10 @@ define((require, exports, module) => {
                 generateImageThumbnail(filePath).then((dataURL) => {
                   resolve(dataURL);
                 }).catch(() => {
-                  this._resolve();
+                  resolve();
                 });
               } else {
-                this._resolve();
+                resolve();
               }
             } else { // Thumbnails exists
               resolve(thumbFilePath);
@@ -256,7 +256,7 @@ define((require, exports, module) => {
       return new Promise((resolve, reject) => {
         let filePath = entry.path;
         let parentFolder = TSCORE.TagUtils.extractParentDirectoryPath(filePath);
-        let metaFileJson = findMetaFilebyPath(filePath, TSCORE.metaFileExt);
+        let metaFileJson = this.findMetaFilebyPath(filePath, TSCORE.metaFileExt);
         if (metaFileJson) { // file in the current directory
           TSCORE.IO.getFileContentPromise(metaFileJson, "text").then((result) => {
             let metaData = JSON.parse(result);
@@ -286,7 +286,7 @@ define((require, exports, module) => {
     static _loadMetaFileJsonPromiseOld(entry) {
       return new Promise((resolve, reject) => {
         let filePath = entry.path;
-        let metaFileJson = findMetaFilebyPath(filePath, TSCORE.metaFileExt);
+        let metaFileJson = this.findMetaFilebyPath(filePath, TSCORE.metaFileExt);
         if (metaFileJson) {
           TSCORE.IO.getFileContentPromise(metaFileJson, "text").then((result) => {
             let metaData = JSON.parse(result);
@@ -305,7 +305,7 @@ define((require, exports, module) => {
 
     static getTagsFromMetaFile(filePath) {
       let tags = [];
-      let metaObj = findMetaObjectFromFileList(filePath);
+      let metaObj = this.findMetaObjectFromFileList(filePath);
       if (metaObj && metaObj.metaData && metaObj.metaData.tags) {
         metaObj.metaData.tags.forEach((elem) => {
           tags.push({
@@ -319,7 +319,7 @@ define((require, exports, module) => {
     }
 
     static getDescriptionFromMetaFile(filePath) {
-      let metaObj = findMetaObjectFromFileList(filePath);
+      let metaObj = this.findMetaObjectFromFileList(filePath);
       let description;
       if (metaObj && metaObj.metaData && metaObj.metaData.description) {
         description = metaObj.metaData.description;
@@ -328,7 +328,7 @@ define((require, exports, module) => {
     }
 
     static addMetaDescriptionToFile(filePath, description) {
-      let metaObj = findMetaObjectFromFileList(filePath);
+      let metaObj = this.findMetaObjectFromFileList(filePath);
       if (!metaObj) {
         metaObj = {
           thumbnailPath: "",
@@ -347,7 +347,7 @@ define((require, exports, module) => {
 
     //meta tag utils
     static addMetaTags(filePath, tags) {
-      let metaObj = findMetaObjectFromFileList(filePath);
+      let metaObj = this.findMetaObjectFromFileList(filePath);
       if (!metaObj) {
         metaObj = {
           thumbnailPath: "",
@@ -370,7 +370,7 @@ define((require, exports, module) => {
         let newTag = {
           "title": element,
           "type": "sidecar",
-          "style": TSCORE.generateTagStyle(TSCORE.Config.findTag(element))
+          "style": TSCORE.TagsUI.generateTagStyle(TSCORE.Config.findTag(element))
         };
         let isNewTag = true;
         metaObj.metaData.tags.forEach((oldTag) => {
@@ -387,7 +387,7 @@ define((require, exports, module) => {
     }
 
     static renameMetaTag(filePath, oldTag, newTag) {
-      let metaObj = findMetaObjectFromFileList(filePath);
+      let metaObj = this.findMetaObjectFromFileList(filePath);
       if (metaObj.metaData) {
         metaObj.metaData.tags.forEach((tag, index) => {
           if (tag.title === oldTag) {
@@ -399,14 +399,14 @@ define((require, exports, module) => {
     }
 
     static removeMetaTag(filePath, tagName) {
-      let metaObj = findMetaObjectFromFileList(filePath);
+      let metaObj = this.findMetaObjectFromFileList(filePath);
       if (metaObj.metaData) {
         metaObj.metaData.tags.forEach((tag, index) => {
           if (tag.title === tagName) {
             metaObj.metaData.tags.splice(index, 1);
           }
         });
-        let metaFileJson = findMetaFilebyPath(filePath, TSCORE.metaFileExt);
+        let metaFileJson = this.findMetaFilebyPath(filePath, TSCORE.metaFileExt);
         if (metaFileJson) {
           let content = JSON.stringify(metaObj.metaData);
           TSCORE.IO.saveTextFilePromise(metaFileJson, content, true);

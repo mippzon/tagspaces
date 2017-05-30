@@ -29,12 +29,12 @@ define(function(require, exports, module) {
   require('i18next');
 
   // Importing modules
-  var tsSettings = require('tssetting');
+  var tsSettings = new (require('tssetting').TSSettings)();
   var tsIOApi = require('tsioapi');
   var tsPersManager = require('tspersmanager');
   var tsTagUtils = require('tstagutils');
-  var tsFileOpener = require('tsfileopener');
-  var tsTagsUI = require('js/tags.ui').TSTags;
+  var tsFileOpener = require('tsfileopener').TSFileOpener;
+  var tsTagsUI = new (require('js/tags.ui').TSTags)();
   var tsDirectoriesUI = require('tsdirectoriesui');
   var tsCoreUI = require('tscoreui');
   var tsSearch = require('tssearch');
@@ -42,7 +42,7 @@ define(function(require, exports, module) {
   var tsPro = require('tspro');
   var tsUtils = require('tsutils');
   var tsIOUtils = require('tsioutils');
-  var tsMeta = require('tsmeta');
+  var tsMeta = require('tsmeta').TSMeta;
   var tsExt = require('tsextapi');
   var tsExtManager = require('tsextmanager');
   var TSCORE = require('tscore');
@@ -505,6 +505,7 @@ define(function(require, exports, module) {
   exports.UI = tsCoreUI;
   exports.PerspectiveManager = tsPersManager;
   exports.TagUtils = tsTagUtils;
+  exports.TagsUI = tsTagsUI;
   exports.FileOpener = tsFileOpener;
   exports.Search = tsSearch;
   exports.Calendar = tsCalendarUI;

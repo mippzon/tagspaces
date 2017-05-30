@@ -14,11 +14,11 @@ define((require, exports, module) => {
 
   let _openedFilePath;
   let _openedFileProperties;
-  const _isFileOpened = false;
-  const _isFileChanged = false;
+  let _isFileOpened = false;
+  let _isFileChanged = false;
   let _tsEditor;
   let generatedTagButtons;
-  const filePropertiesOpened = false;
+  let filePropertiesOpened = false;
 
   $.fn.editableform.buttons = '<button type="submit" class="btn btn-primary btn-sm editable-submit"><i class="fa fa-check fa-lg"></i></button><button type="button" class="btn btn-sm editable-cancel"><i class="fa fa-times fa-lg"></i></button>';
   $.fn.editableform.template = '' +
@@ -32,7 +32,7 @@ define((require, exports, module) => {
     '  </div> ' +
     '</form>';
   let exitFullscreenButton = '<button id="exitFullScreen" class="btn btn-link" title="Exit fullscreen mode (ESC)"><span class="fa fa-remove"></span></button>';
-  const _isEditMode = false; // If a file is currently opened for editing, this var should be true
+  let _isEditMode = false; // If a file is currently opened for editing, this var should be true
 
   window.onbeforeunload = () => {
     if (_isFileChanged) {
@@ -65,7 +65,7 @@ define((require, exports, module) => {
       if ($('#exitFullScreen').length < 1) {
         $('#viewer').append(exitFullscreenButton);
       }
-      $("#exitFullScreen").show().on("click", leaveFullScreen);
+      $("#exitFullScreen").show().on("click", this._leaveFullScreen);
 
       let docElm = $('#viewer')[0];
       if (docElm.requestFullscreen) {
@@ -82,7 +82,7 @@ define((require, exports, module) => {
         editFile(_openedFilePath);
       });
 
-      $('#saveDocument').on("click", saveFile);
+      $('#saveDocument').on("click", this.saveFile);
 
       $('#closeFile').on("click", () => {
         closeFile(false);
@@ -110,7 +110,7 @@ define((require, exports, module) => {
 
       $('#toggleFullWidthButton').on("click", TSCORE.toggleFullWidth);
 
-      $('#fullscreenFile').on("click", switchToFullScreen);
+      $('#fullscreenFile').on("click", this.switchToFullScreen);
 
       //$('#openProperties').on("click", showFilePropertiesDialog);
 
@@ -167,15 +167,15 @@ define((require, exports, module) => {
 
       $('#tagFile').on("click", tagFile);
 
-      $('#editFileDescriptionButton').on('click', editFileDescription);
+      $('#editFileDescriptionButton').on('click', this._editFileDescription);
 
-      $('#cancelEditFileDescriptionButton').on('click', cancelEditFileDescription);
+      $('#cancelEditFileDescriptionButton').on('click', this._cancelEditFileDescription);
 
-      $('#saveFileDescriptionButton').on('click', saveFileDescription);
+      $('#saveFileDescriptionButton').on('click', this._saveFileDescription);
 
-      $('#addTagsFileDescriptionButton').on('click', tagFile);
+      $('#addTagsFileDescriptionButton').on('click', this._tagFile);
 
-      $('#toggleFileProperitesButton').on('click', toggleFileProperties);
+      $('#toggleFileProperitesButton').on('click', this._toggleFileProperties);
     }
 
     // TODO handle the case: changing to next file/close while in edit mode
@@ -467,7 +467,7 @@ define((require, exports, module) => {
         return false;
       });
 
-      Mousetrap.bindGlobal("esc", leaveFullScreen);
+      Mousetrap.bindGlobal("esc", this._leaveFullScreen);
     }
 
     static updateEditorContent(fileContent) {
@@ -564,10 +564,9 @@ define((require, exports, module) => {
           tagString = tagString + ',' + value;
         }
       });
-      generatedTagButtons = TSCORE.generateTagButtons(tagString, _openedFilePath);
+      generatedTagButtons = TSCORE.TagsUI.generateTagButtons(tagString, _openedFilePath);
       let $fileTags = $('#fileTags');
       $fileTags.children().remove();
-      $fileTags.append(generatedTagButtons);
       $('#tagsContainer').droppable({
         greedy: 'true',
         accept: '.tagButton',

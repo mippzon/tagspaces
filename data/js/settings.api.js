@@ -10,8 +10,7 @@ define((require, exports, module) => {
   console.log('Loading settings.api.js..');
 
   const TSCORE = require('tscore');
-  exports.DefaultSettings = require('tssettingsdefault').defaultSettings;
-  exports.Settings = undefined;
+  const defaultSettings = require('tssettingsdefault').defaultSettings;
 
   let tagTemplate = {
     'title': undefined,
@@ -45,28 +44,33 @@ define((require, exports, module) => {
     'children': []
   };
 
-  const firstRun = false;
+  let firstRun = false;
 
   class TSSettings {
 
+    constructor() {
+      this.DefaultSettings = defaultSettings;
+      this.Settings;
+    }
+  
     //////////////////// Settings upgrade methods ///////////////////
-    static upgradeSettings() {
-      let oldBuildNumber = parseInt(exports.Settings.appBuildID);
+    upgradeSettings() {
+      let oldBuildNumber = parseInt(this.Settings.appBuildID);
       // For compartibility reasons
-      if (exports.Settings.appBuildID === undefined) {
-        oldBuildNumber = parseInt(exports.Settings.appBuild);
-        exports.Settings.appBuildID = exports.DefaultSettings.appBuildID;
+      if (this.Settings.appBuildID === undefined) {
+        oldBuildNumber = parseInt(this.Settings.appBuild);
+        this.Settings.appBuildID = this.DefaultSettings.appBuildID;
         this.saveSettings();
       }
-      let newBuildNumber = parseInt(exports.DefaultSettings.appBuildID);
+      let newBuildNumber = parseInt(this.DefaultSettings.appBuildID);
       // Workarround for settings update, please comment for production
       //oldBuildNumber = 1;
       //newBuildNumber = 2;
       if (oldBuildNumber < newBuildNumber) {
         console.log('Upgrading settings');
-        exports.Settings.appVersion = exports.DefaultSettings.appVersion;
-        exports.Settings.appBuild = exports.DefaultSettings.appBuild;
-        exports.Settings.appBuildID = exports.DefaultSettings.appBuildID;
+        this.Settings.appVersion = this.DefaultSettings.appVersion;
+        this.Settings.appBuild = this.DefaultSettings.appBuild;
+        this.Settings.appBuildID = this.DefaultSettings.appBuildID;
         this.getPerspectiveExtensions();
         this.getExtensionPath();
         this.getShowUnixHiddenEntries();
@@ -181,7 +185,7 @@ define((require, exports, module) => {
             'editor': 'false'
           });
           if (TSCORE.PRO) {
-            exports.Settings.tagGroups.forEach((value) => {
+            this.Settings.tagGroups.forEach((value) => {
               if (value.key === 'SMR') {
                 value.children.push({
                   "type": "smart",
@@ -219,34 +223,34 @@ define((require, exports, module) => {
       }
     }
 
-    static addTagGroup(newTagGroup) { // TODO add parameters replace and merge
+    addTagGroup(newTagGroup) { // TODO add parameters replace and merge
       let tagGroupExist = false;
-      exports.Settings.tagGroups.forEach((value) => {
+      this.Settings.tagGroups.forEach((value) => {
         if (value.key === newTagGroup.key) {
-          //exports.Settings.tagGroups.splice($.inArray(value, exports.Settings.tagGroups), 1);
+          //this.Settings.tagGroups.splice($.inArray(value, this.Settings.tagGroups), 1);
           tagGroupExist = true;
         }
       });
       if (!tagGroupExist) {
-        exports.Settings.tagGroups.push(newTagGroup);
+        this.Settings.tagGroups.push(newTagGroup);
       }
-      //exports.Settings.tagGroups.push(newTagGroup);
+      //this.Settings.tagGroups.push(newTagGroup);
     }
 
-    static _addFileType(newFileType) {
+    _addFileType(newFileType) {
       let fileTypeExist = false;
-      exports.Settings.supportedFileTypes.forEach((value) => {
+      this.Settings.supportedFileTypes.forEach((value) => {
         if (value.type === newFileType.type) {
           fileTypeExist = true;
         }
       });
       if (!fileTypeExist) {
-        exports.Settings.supportedFileTypes.push(newFileType);
+        this.Settings.supportedFileTypes.push(newFileType);
       }
     }
 
-    static _updateFileType(newFileType) {
-      exports.Settings.supportedFileTypes.forEach((value) => {
+    _updateFileType(newFileType) {
+      this.Settings.supportedFileTypes.forEach((value) => {
         if (value.type === newFileType.type) {
           value.viewer = newFileType.viewer;
           value.editor = newFileType.editor;
@@ -254,7 +258,7 @@ define((require, exports, module) => {
       });
     }
 
-    static _addToSettingsArray(arrayLocation, value) {
+    _addToSettingsArray(arrayLocation, value) {
       if (arrayLocation instanceof Array) {
         if ($.inArray(value, arrayLocation) < 0) {
           arrayLocation.push(value);
@@ -262,13 +266,13 @@ define((require, exports, module) => {
       }
     }
 
-    static _removeFromSettingsArray(arrayLocation, value) {
+    _removeFromSettingsArray(arrayLocation, value) {
       if (arrayLocation instanceof Array) {
         arrayLocation.splice($.inArray(value, arrayLocation), 1);
       }
     }
 
-    static _removeFromSettingsArrayById(arrayLocation, id) {
+    _removeFromSettingsArrayById(arrayLocation, id) {
       if (arrayLocation instanceof Array) {
         arrayLocation.forEach((value, index) => {
           if (value.id === id) {
@@ -280,7 +284,7 @@ define((require, exports, module) => {
 
     //////////////////// getter and setter methods ///////////////////
 
-    static getAppFullName() {
+    getAppFullName() {
         let appFullName = "TagSpaces"; // TODO extend settings with app full name
         if (TSCORE.PRO) {
           appFullName = appFullName + " Pro";
@@ -288,9 +292,9 @@ define((require, exports, module) => {
         return appFullName;
     }
 
-    static getPerspectiveExtensions() {
+    getPerspectiveExtensions() {
       let perspectives = [];
-      getExtensions().forEach((extension) => {
+      this.getExtensions().forEach((extension) => {
         if (extension.type === "perspective") {
           perspectives.push({'id': extension.id, 'name': extension.name});
         }
@@ -298,9 +302,9 @@ define((require, exports, module) => {
       return perspectives;
     }
 
-    static getViewerExtensions() {
+    getViewerExtensions() {
       let viewers = [];
-      getExtensions().forEach((extension) => {
+      this.getExtensions().forEach((extension) => {
         if (extension.type === "viewer" || extension.type === "editor") {
           viewers.push({'id': extension.id, 'name': extension.name});
         }
@@ -308,9 +312,9 @@ define((require, exports, module) => {
       return viewers;
     }
 
-    static getEditorExtensions() {
+    getEditorExtensions() {
       let editors = [];
-      getExtensions().forEach((extension) => {
+      this.getExtensions().forEach((extension) => {
         if (extension.type === "editor") {
           editors.push({'id': extension.id, 'name': extension.name});
         }
@@ -318,15 +322,15 @@ define((require, exports, module) => {
       return editors;
     }
 
-    static getActivatedPerspectives() {
-      if (!exports.Settings.perspectives) {
-        exports.Settings.perspectives = exports.DefaultSettings.perspectives;
+    getActivatedPerspectives() {
+      if (!this.Settings.perspectives) {
+        this.Settings.perspectives = this.DefaultSettings.perspectives;
       }
 
       let matchedPerspectives = [];
 
-      exports.Settings.perspectives.forEach((activatedPerspective) => {
-        getPerspectiveExtensions().forEach((perspective) => {
+      this.Settings.perspectives.forEach((activatedPerspective) => {
+        this.getPerspectiveExtensions().forEach((perspective) => {
           if (activatedPerspective.id === perspective.id) {
             activatedPerspective.name = perspective.name;
             matchedPerspectives.push(activatedPerspective);
@@ -335,20 +339,20 @@ define((require, exports, module) => {
       });
 
       if (matchedPerspectives.length > 0) {
-        exports.Settings.perspectives = matchedPerspectives;
+        this.Settings.perspectives = matchedPerspectives;
         this.saveSettings();
       }
-      return exports.Settings.perspectives;
+      return this.Settings.perspectives;
     }
 
-    static setActivatedPerspectives(value) {
+    setActivatedPerspectives(value) {
 
-      exports.Settings.perspectives = value;
+      this.Settings.perspectives = value;
     }
 
-    static isFirstRun() {
-      if (exports.Settings.firstRun === undefined || exports.Settings.firstRun === true) {
-        exports.Settings.firstRun = false;
+    isFirstRun() {
+      if (this.Settings.firstRun === undefined || this.Settings.firstRun === true) {
+        this.Settings.firstRun = false;
         this.saveSettings();
         return true;
       } else {
@@ -356,806 +360,806 @@ define((require, exports, module) => {
       }
     }
 
-    static getExtensions() {
-      if (!exports.Settings.extensions || exports.Settings.extensions.length < 1) {
-        exports.Settings.extensions = [];
-        exports.DefaultSettings.ootbPerspectives.forEach((extensionId) => {
-          exports.Settings.extensions.push({'id': extensionId, 'name': extensionId, 'type': 'perspective'});
+    getExtensions() {
+      if (!this.Settings.extensions || this.Settings.extensions.length < 1) {
+        this.Settings.extensions = [];
+        this.DefaultSettings.ootbPerspectives.forEach((extensionId) => {
+          this.Settings.extensions.push({'id': extensionId, 'name': extensionId, 'type': 'perspective'});
         });
-        exports.DefaultSettings.ootbViewers.forEach((extensionId) => {
-          exports.Settings.extensions.push({'id': extensionId, 'name': extensionId, 'type': 'viewer'});
+        this.DefaultSettings.ootbViewers.forEach((extensionId) => {
+          this.Settings.extensions.push({'id': extensionId, 'name': extensionId, 'type': 'viewer'});
         });
-        exports.DefaultSettings.ootbEditors.forEach((extensionId) => {
-          exports.Settings.extensions.push({'id': extensionId, 'name': extensionId, 'type': 'editor'});
+        this.DefaultSettings.ootbEditors.forEach((extensionId) => {
+          this.Settings.extensions.push({'id': extensionId, 'name': extensionId, 'type': 'editor'});
         });
       }
-      return exports.Settings.extensions;
+      return this.Settings.extensions;
     }
 
-    static setExtensions(extensions) {
+    setExtensions(extensions) {
 
-      exports.Settings.extensions = extensions;
+      this.Settings.extensions = extensions;
     }
 
-    static getExtensionPath() {
-      if (exports.Settings.extensionsPath === undefined) {
-        exports.Settings.extensionsPath = exports.DefaultSettings.extensionsPath;
+    getExtensionPath() {
+      if (this.Settings.extensionsPath === undefined) {
+        this.Settings.extensionsPath = this.DefaultSettings.extensionsPath;
       }
-      return exports.Settings.extensionsPath;
+      return this.Settings.extensionsPath;
     }
 
-    static setExtensionPath(value) {
+    setExtensionPath(value) {
 
-      exports.Settings.extensionsPath = value;
+      this.Settings.extensionsPath = value;
     }
 
-    static getIsWindowMaximized() {
-      if (exports.Settings.isWindowMaximized === undefined) {
-        exports.Settings.isWindowMaximized = exports.DefaultSettings.isWindowMaximized;
+    getIsWindowMaximized() {
+      if (this.Settings.isWindowMaximized === undefined) {
+        this.Settings.isWindowMaximized = this.DefaultSettings.isWindowMaximized;
       }
-      return exports.Settings.isWindowMaximized;
+      return this.Settings.isWindowMaximized;
     }
 
-    static setIsWindowMaximized(value) {
+    setIsWindowMaximized(value) {
 
-      exports.Settings.isWindowMaximized = value;
+      this.Settings.isWindowMaximized = value;
     }
 
-    static getLastOpenedLocation() {
-      if (exports.Settings.lastOpenedLocation === undefined) {
-        exports.Settings.lastOpenedLocation = exports.DefaultSettings.lastOpenedLocation;
+    getLastOpenedLocation() {
+      if (this.Settings.lastOpenedLocation === undefined) {
+        this.Settings.lastOpenedLocation = this.DefaultSettings.lastOpenedLocation;
       }
-      return exports.Settings.lastOpenedLocation;
+      return this.Settings.lastOpenedLocation;
     }
 
-    static setLastOpenedLocation(value) {
+    setLastOpenedLocation(value) {
 
-      exports.Settings.lastOpenedLocation = value;
+      this.Settings.lastOpenedLocation = value;
     }
 
-    static getDefaultLocation() {
+    getDefaultLocation() {
 
-      return exports.Settings.defaultLocation || "";
+      return this.Settings.defaultLocation || "";
     }
 
-    static setDefaultLocation(value) {
+    setDefaultLocation(value) {
 
-      exports.Settings.defaultLocation = value;
+      this.Settings.defaultLocation = value;
     }
 
-    static getSupportedLanguages() {
+    getSupportedLanguages() {
 
-      return exports.DefaultSettings.supportedLanguages;
+      return this.DefaultSettings.supportedLanguages;
     }
 
-    static getAvailableThumbnailSizes() {
+    getAvailableThumbnailSizes() {
 
-      return exports.DefaultSettings.availableThumbnailSizes;
+      return this.DefaultSettings.availableThumbnailSizes;
     }
 
-    static getAvailableThumbnailFormat() {
+    getAvailableThumbnailFormat() {
 
-      return exports.DefaultSettings.availableThumbnailFormat;
+      return this.DefaultSettings.availableThumbnailFormat;
     }
 
-    static getCloseViewerKeyBinding() {
+    getCloseViewerKeyBinding() {
       this._updateKeyBindingsSetting();
-      if (exports.Settings.keyBindings.closeViewer === undefined) {
-        exports.Settings.keyBindings.closeViewer = exports.DefaultSettings.keyBindings.closeViewer;
+      if (this.Settings.keyBindings.closeViewer === undefined) {
+        this.Settings.keyBindings.closeViewer = this.DefaultSettings.keyBindings.closeViewer;
         this.saveSettings();
       }
-      return exports.Settings.keyBindings.closeViewer;
+      return this.Settings.keyBindings.closeViewer;
     }
 
-    static setCloseViewerKeyBinding(value) {
+    setCloseViewerKeyBinding(value) {
 
-      exports.Settings.keyBindings.closeViewer = value;
+      this.Settings.keyBindings.closeViewer = value;
     }
 
-    static getEditDocumentKeyBinding() {
+    getEditDocumentKeyBinding() {
       this._updateKeyBindingsSetting();
-      if (exports.Settings.keyBindings.editDocument === undefined) {
-        exports.Settings.keyBindings.editDocument = exports.DefaultSettings.keyBindings.editDocument;
+      if (this.Settings.keyBindings.editDocument === undefined) {
+        this.Settings.keyBindings.editDocument = this.DefaultSettings.keyBindings.editDocument;
         this.saveSettings();
       }
-      return exports.Settings.keyBindings.editDocument;
+      return this.Settings.keyBindings.editDocument;
     }
 
-    static setEditDocumentKeyBinding(value) {
+    setEditDocumentKeyBinding(value) {
 
-      exports.Settings.keyBindings.editDocument = value;
+      this.Settings.keyBindings.editDocument = value;
     }
 
-    static getSaveDocumentKeyBinding() {
+    getSaveDocumentKeyBinding() {
       this._updateKeyBindingsSetting();
-      if (exports.Settings.keyBindings.saveDocument === undefined) {
-        exports.Settings.keyBindings.saveDocument = exports.DefaultSettings.keyBindings.saveDocument;
+      if (this.Settings.keyBindings.saveDocument === undefined) {
+        this.Settings.keyBindings.saveDocument = this.DefaultSettings.keyBindings.saveDocument;
         this.saveSettings();
       }
-      return exports.Settings.keyBindings.saveDocument;
+      return this.Settings.keyBindings.saveDocument;
     }
 
-    static setSaveDocumentKeyBinding(value) {
+    setSaveDocumentKeyBinding(value) {
 
-      exports.Settings.keyBindings.saveDocument = value;
+      this.Settings.keyBindings.saveDocument = value;
     }
 
-    static getReloadApplicationKeyBinding() {
-      //if (exports.Settings.keyBindings === undefined) {
-      //    exports.Settings.keyBindings = exports.DefaultSettings.keyBindings;
+    getReloadApplicationKeyBinding() {
+      //if (this.Settings.keyBindings === undefined) {
+      //    this.Settings.keyBindings = this.DefaultSettings.keyBindings;
       //    saveSettings();
       //}
-      //if (exports.Settings.keyBindings.reloadApplication === undefined) {
-      //    exports.Settings.keyBindings.reloadApplication = exports.DefaultSettings.keyBindings.reloadApplication;
+      //if (this.Settings.keyBindings.reloadApplication === undefined) {
+      //    this.Settings.keyBindings.reloadApplication = this.DefaultSettings.keyBindings.reloadApplication;
       //    saveSettings();
       //}
-      return exports.DefaultSettings.keyBindings.reloadApplication;
+      return this.DefaultSettings.keyBindings.reloadApplication;
     }
 
-    static setReloadApplicationKeyBinding(value) {
+    setReloadApplicationKeyBinding(value) {
 
-      consolo.log('Not supported command'); //exports.Settings.keyBindings.reloadApplication = value;
+      consolo.log('Not supported command'); //this.Settings.keyBindings.reloadApplication = value;
     }
 
-    static getToggleFullScreenKeyBinding() {
+    getToggleFullScreenKeyBinding() {
       this._updateKeyBindingsSetting();
-      if (exports.Settings.keyBindings.toggleFullScreen === undefined) {
-        exports.Settings.keyBindings.toggleFullScreen = exports.DefaultSettings.keyBindings.toggleFullScreen;
+      if (this.Settings.keyBindings.toggleFullScreen === undefined) {
+        this.Settings.keyBindings.toggleFullScreen = this.DefaultSettings.keyBindings.toggleFullScreen;
         this.saveSettings();
       }
-      return exports.Settings.keyBindings.toggleFullScreen;
+      return this.Settings.keyBindings.toggleFullScreen;
     }
 
-    static setToggleFullScreenKeyBinding(value) {
+    setToggleFullScreenKeyBinding(value) {
 
-      exports.Settings.keyBindings.toggleFullScreen = value;
+      this.Settings.keyBindings.toggleFullScreen = value;
     }
 
-    static getAddRemoveTagsKeyBinding() {
+    getAddRemoveTagsKeyBinding() {
       this._updateKeyBindingsSetting();
-      if (exports.Settings.keyBindings.addRemoveTags === undefined) {
-        exports.Settings.keyBindings.addRemoveTags = exports.DefaultSettings.keyBindings.addRemoveTags;
+      if (this.Settings.keyBindings.addRemoveTags === undefined) {
+        this.Settings.keyBindings.addRemoveTags = this.DefaultSettings.keyBindings.addRemoveTags;
         this.saveSettings();
       }
-      return exports.Settings.keyBindings.addRemoveTags;
+      return this.Settings.keyBindings.addRemoveTags;
     }
 
-    static setAddRemoveTagsKeyBinding(value) {
+    setAddRemoveTagsKeyBinding(value) {
 
-      exports.Settings.keyBindings.addRemoveTags = value;
+      this.Settings.keyBindings.addRemoveTags = value;
     }
 
-    static getReloadDocumentKeyBinding() {
+    getReloadDocumentKeyBinding() {
       this._updateKeyBindingsSetting();
-      if (exports.Settings.keyBindings.reloadDocument === undefined) {
-        exports.Settings.keyBindings.reloadDocument = exports.DefaultSettings.keyBindings.reloadDocument;
+      if (this.Settings.keyBindings.reloadDocument === undefined) {
+        this.Settings.keyBindings.reloadDocument = this.DefaultSettings.keyBindings.reloadDocument;
         this.saveSettings();
       }
-      return exports.Settings.keyBindings.reloadDocument;
+      return this.Settings.keyBindings.reloadDocument;
     }
 
-    static setReloadDocumentKeyBinding(value) {
+    setReloadDocumentKeyBinding(value) {
 
-      exports.Settings.keyBindings.reloadDocument = value;
+      this.Settings.keyBindings.reloadDocument = value;
     }
 
-    static setSelectAllKeyBinding(value) {
+    setSelectAllKeyBinding(value) {
 
-      exports.Settings.keyBindings.selectAll = value;
+      this.Settings.keyBindings.selectAll = value;
     }
 
-    static getSelectAllKeyBinding() {
+    getSelectAllKeyBinding() {
       this._updateKeyBindingsSetting();
-      if (exports.Settings.keyBindings.selectAll === undefined) {
-        exports.Settings.keyBindings.selectAll = exports.DefaultSettings.keyBindings.selectAll;
+      if (this.Settings.keyBindings.selectAll === undefined) {
+        this.Settings.keyBindings.selectAll = this.DefaultSettings.keyBindings.selectAll;
         this.saveSettings();
       }
-      return exports.Settings.keyBindings.selectAll;
+      return this.Settings.keyBindings.selectAll;
     }
 
-    static getRenamingFileKeyBinding() {
-      _updateKeyBindingsSetting;
-      if (exports.Settings.keyBindings.renameFile === undefined) {
-        exports.Settings.keyBindings.renameFile = exports.DefaultSettings.keyBindings.renameFile;
+    getRenamingFileKeyBinding() {
+      this._updateKeyBindingsSetting;
+      if (this.Settings.keyBindings.renameFile === undefined) {
+        this.Settings.keyBindings.renameFile = this.DefaultSettings.keyBindings.renameFile;
         this.saveSettings();
       }
-      return exports.Settings.keyBindings.renameFile;
+      return this.Settings.keyBindings.renameFile;
     }
 
-    static setRenamingFileKeyBinding(value) {
-      exports.Settings.keyBindings.renameFile = value;
+    setRenamingFileKeyBinding(value) {
+      this.Settings.keyBindings.renameFile = value;
     }
 
-    static getDeleteDocumentKeyBinding() {
+    getDeleteDocumentKeyBinding() {
       this._updateKeyBindingsSetting();
-      if (exports.Settings.keyBindings.deleteDocument === undefined) {
-        exports.Settings.keyBindings.deleteDocument = exports.DefaultSettings.keyBindings.deleteDocument;
+      if (this.Settings.keyBindings.deleteDocument === undefined) {
+        this.Settings.keyBindings.deleteDocument = this.DefaultSettings.keyBindings.deleteDocument;
         this.saveSettings();
       }
-      return exports.Settings.keyBindings.deleteDocument;
+      return this.Settings.keyBindings.deleteDocument;
     }
 
-    static setDeleteDocumentKeyBinding(value) {
+    setDeleteDocumentKeyBinding(value) {
 
-      exports.Settings.keyBindings.deleteDocument = value;
+      this.Settings.keyBindings.deleteDocument = value;
     }
 
-    static getOpenFileKeyBinding() {
+    getOpenFileKeyBinding() {
       this._updateKeyBindingsSetting();
-      if (exports.Settings.keyBindings.openFile === undefined) {
-        exports.Settings.keyBindings.openFile = exports.DefaultSettings.keyBindings.openFile;
+      if (this.Settings.keyBindings.openFile === undefined) {
+        this.Settings.keyBindings.openFile = this.DefaultSettings.keyBindings.openFile;
         this.saveSettings();
       }
-      return exports.Settings.keyBindings.openFile;
+      return this.Settings.keyBindings.openFile;
     }
 
-    static setOpenFileKeyBinding(value) {
+    setOpenFileKeyBinding(value) {
 
-      exports.Settings.keyBindings.openFile = value;
+      this.Settings.keyBindings.openFile = value;
     }
 
-    static getOpenFileExternallyKeyBinding() {
+    getOpenFileExternallyKeyBinding() {
       this._updateKeyBindingsSetting();
-      if (exports.Settings.keyBindings.openFileExternally === undefined) {
-        exports.Settings.keyBindings.openFileExternally = exports.DefaultSettings.keyBindings.openFileExternally;
+      if (this.Settings.keyBindings.openFileExternally === undefined) {
+        this.Settings.keyBindings.openFileExternally = this.DefaultSettings.keyBindings.openFileExternally;
         this.saveSettings();
       }
-      return exports.Settings.keyBindings.openFileExternally;
+      return this.Settings.keyBindings.openFileExternally;
     }
 
-    static setOpenFileExternallyKeyBinding(value) {
+    setOpenFileExternallyKeyBinding(value) {
 
-      exports.Settings.keyBindings.openFileExternally = value;
+      this.Settings.keyBindings.openFileExternally = value;
     }
 
-    static getPropertiesDocumentKeyBinding() {
+    getPropertiesDocumentKeyBinding() {
       this._updateKeyBindingsSetting();
-      if (exports.Settings.keyBindings.propertiesDocument === undefined) {
-        exports.Settings.keyBindings.propertiesDocument = exports.DefaultSettings.keyBindings.propertiesDocument;
+      if (this.Settings.keyBindings.propertiesDocument === undefined) {
+        this.Settings.keyBindings.propertiesDocument = this.DefaultSettings.keyBindings.propertiesDocument;
         this.saveSettings();
       }
-      return exports.Settings.keyBindings.propertiesDocument;
+      return this.Settings.keyBindings.propertiesDocument;
     }
 
-    static setPropertiesDocumentKeyBinding(value) {
+    setPropertiesDocumentKeyBinding(value) {
 
-      exports.Settings.keyBindings.propertiesDocument = value;
+      this.Settings.keyBindings.propertiesDocument = value;
     }
 
-    static getNextDocumentKeyBinding() {
+    getNextDocumentKeyBinding() {
       this._updateKeyBindingsSetting();
-      if (exports.Settings.keyBindings.nextDocument === undefined) {
-        exports.Settings.keyBindings.nextDocument = exports.DefaultSettings.keyBindings.nextDocument;
+      if (this.Settings.keyBindings.nextDocument === undefined) {
+        this.Settings.keyBindings.nextDocument = this.DefaultSettings.keyBindings.nextDocument;
         this.saveSettings();
       }
-      return exports.Settings.keyBindings.nextDocument;
+      return this.Settings.keyBindings.nextDocument;
     }
 
-    static setNextDocumentKeyBinding(value) {
+    setNextDocumentKeyBinding(value) {
 
-      exports.Settings.keyBindings.nextDocument = value;
+      this.Settings.keyBindings.nextDocument = value;
     }
 
-    static getPrevDocumentKeyBinding() {
+    getPrevDocumentKeyBinding() {
       this._updateKeyBindingsSetting();
-      if (exports.Settings.keyBindings.prevDocument === undefined) {
-        exports.Settings.keyBindings.prevDocument = exports.DefaultSettings.keyBindings.prevDocument;
+      if (this.Settings.keyBindings.prevDocument === undefined) {
+        this.Settings.keyBindings.prevDocument = this.DefaultSettings.keyBindings.prevDocument;
         this.saveSettings();
       }
-      return exports.Settings.keyBindings.prevDocument;
+      return this.Settings.keyBindings.prevDocument;
     }
 
-    static setShowTagLibraryKeyBinding(value) {
+    setShowTagLibraryKeyBinding(value) {
 
-      exports.Settings.keyBindings.showTagLibrary = value;
+      this.Settings.keyBindings.showTagLibrary = value;
     }
 
-    static getShowTagLibraryKeyBinding() {
+    getShowTagLibraryKeyBinding() {
       this._updateKeyBindingsSetting();
-      if (exports.Settings.keyBindings.showTagLibrary === undefined) {
-        exports.Settings.keyBindings.showTagLibrary = exports.DefaultSettings.keyBindings.showTagLibrary;
+      if (this.Settings.keyBindings.showTagLibrary === undefined) {
+        this.Settings.keyBindings.showTagLibrary = this.DefaultSettings.keyBindings.showTagLibrary;
         this.saveSettings();
       }
-      return exports.Settings.keyBindings.showTagLibrary;
+      return this.Settings.keyBindings.showTagLibrary;
     }
 
-    static setShowFolderNavigatorKeyBinding(value) {
+    setShowFolderNavigatorKeyBinding(value) {
 
-      exports.Settings.keyBindings.showFolderNavigator = value;
+      this.Settings.keyBindings.showFolderNavigator = value;
     }
 
-    static getShowFolderNavigatorBinding() {
+    getShowFolderNavigatorBinding() {
       this._updateKeyBindingsSetting();
-      if (exports.Settings.keyBindings.showFolderNavigator === undefined) {
-        exports.Settings.keyBindings.showFolderNavigator = exports.DefaultSettings.keyBindings.showFolderNavigator;
+      if (this.Settings.keyBindings.showFolderNavigator === undefined) {
+        this.Settings.keyBindings.showFolderNavigator = this.DefaultSettings.keyBindings.showFolderNavigator;
         this.saveSettings();
       }
-      return exports.Settings.keyBindings.showFolderNavigator;
+      return this.Settings.keyBindings.showFolderNavigator;
     }
 
-    static setPrevDocumentKeyBinding(value) {
+    setPrevDocumentKeyBinding(value) {
 
-      exports.Settings.keyBindings.prevDocument = value;
+      this.Settings.keyBindings.prevDocument = value;
     }
 
-    static getOpenDevToolsScreenKeyBinding() {
+    getOpenDevToolsScreenKeyBinding() {
       this._updateKeyBindingsSetting();
-      if (exports.Settings.keyBindings.openDevTools === undefined) {
-        exports.Settings.keyBindings.openDevTools = exports.DefaultSettings.keyBindings.openDevTools;
+      if (this.Settings.keyBindings.openDevTools === undefined) {
+        this.Settings.keyBindings.openDevTools = this.DefaultSettings.keyBindings.openDevTools;
         this.saveSettings();
       }
-      return exports.Settings.keyBindings.openDevTools;
+      return this.Settings.keyBindings.openDevTools;
     }
 
-    static setOpenDevToolsScreenKeyBinding(value) {
+    setOpenDevToolsScreenKeyBinding(value) {
 
-      exports.Settings.keyBindings.openDevTools = value;
+      this.Settings.keyBindings.openDevTools = value;
     }
 
-    static getSearchKeyBinding() {
+    getSearchKeyBinding() {
       this._updateKeyBindingsSetting();
-      if (exports.Settings.keyBindings.openSearch === undefined) {
-        exports.Settings.keyBindings.openSearch = exports.DefaultSettings.keyBindings.openSearch;
+      if (this.Settings.keyBindings.openSearch === undefined) {
+        this.Settings.keyBindings.openSearch = this.DefaultSettings.keyBindings.openSearch;
         this.saveSettings();
       }
-      return exports.Settings.keyBindings.openSearch;
+      return this.Settings.keyBindings.openSearch;
     }
 
-    static setSearchKeyBinding(value) {
+    setSearchKeyBinding(value) {
 
-      exports.Settings.keyBindings.openSearch = value;
+      this.Settings.keyBindings.openSearch = value;
     }
 
-    static getEnableGlobalKeyboardShortcuts() {
-      if (exports.Settings.enableGlobalKeyboardShortcuts === undefined) {
-        exports.Settings.enableGlobalKeyboardShortcuts = exports.DefaultSettings.enableGlobalKeyboardShortcuts;
+    getEnableGlobalKeyboardShortcuts() {
+      if (this.Settings.enableGlobalKeyboardShortcuts === undefined) {
+        this.Settings.enableGlobalKeyboardShortcuts = this.DefaultSettings.enableGlobalKeyboardShortcuts;
         this.saveSettings();
       }
-      return exports.Settings.enableGlobalKeyboardShortcuts;
+      return this.Settings.enableGlobalKeyboardShortcuts;
     }
 
-    static setEnableGlobalKeyboardShortcuts(value) {
+    setEnableGlobalKeyboardShortcuts(value) {
 
-      exports.Settings.enableGlobalKeyboardShortcuts = value;
+      this.Settings.enableGlobalKeyboardShortcuts = value;
     }
 
-    static getInterfaceLanguage() {
-      if (exports.Settings.interfaceLanguage === undefined) {
-        exports.Settings.interfaceLanguage = exports.DefaultSettings.interfaceLanguage;
+    getInterfaceLanguage() {
+      if (this.Settings.interfaceLanguage === undefined) {
+        this.Settings.interfaceLanguage = this.DefaultSettings.interfaceLanguage;
         this.saveSettings();
       }
-      return exports.Settings.interfaceLanguage;
+      return this.Settings.interfaceLanguage;
     }
 
-    static setInterfaceLanguage(value) {
+    setInterfaceLanguage(value) {
 
-      exports.Settings.interfaceLanguage = value;
+      this.Settings.interfaceLanguage = value;
     }
 
-    static getShowWarningRecursiveScan() {
-      if (exports.Settings.showWarningRecursiveScan === undefined) {
-        exports.Settings.showWarningRecursiveScan = exports.DefaultSettings.showWarningRecursiveScan;
+    getShowWarningRecursiveScan() {
+      if (this.Settings.showWarningRecursiveScan === undefined) {
+        this.Settings.showWarningRecursiveScan = this.DefaultSettings.showWarningRecursiveScan;
         this.saveSettings();
       }
-      return exports.Settings.showWarningRecursiveScan;
+      return this.Settings.showWarningRecursiveScan;
     }
 
-    static setShowWarningRecursiveScan(value) {
-      exports.Settings.showWarningRecursiveScan = value;
+    setShowWarningRecursiveScan(value) {
+      this.Settings.showWarningRecursiveScan = value;
       this.saveSettings();
     }
 
-    static getShowMainMenu() {
-      if (exports.Settings.showMainMenu === undefined) {
-        exports.Settings.showMainMenu = exports.DefaultSettings.showMainMenu;
+    getShowMainMenu() {
+      if (this.Settings.showMainMenu === undefined) {
+        this.Settings.showMainMenu = this.DefaultSettings.showMainMenu;
       }
-      return exports.Settings.showMainMenu;
+      return this.Settings.showMainMenu;
     }
 
-    static setShowMainMenu(value) {
+    setShowMainMenu(value) {
 
-      exports.Settings.showMainMenu = value;
+      this.Settings.showMainMenu = value;
     }
 
-    static getWebDavPath() {
-      if (exports.Settings.webDavPath === undefined) {
-        exports.Settings.webDavPath = exports.DefaultSettings.webDavPath;
+    getWebDavPath() {
+      if (this.Settings.webDavPath === undefined) {
+        this.Settings.webDavPath = this.DefaultSettings.webDavPath;
       }
-      return exports.Settings.webDavPath;
+      return this.Settings.webDavPath;
     }
 
-    static setWebDavPath(value) {
+    setWebDavPath(value) {
 
-      exports.Settings.webDavPath = value;
+      this.Settings.webDavPath = value;
     }
 
-    static getShowUnixHiddenEntries() {
-      if (exports.Settings.showUnixHiddenEntries === undefined) {
-        exports.Settings.showUnixHiddenEntries = exports.DefaultSettings.showUnixHiddenEntries;
+    getShowUnixHiddenEntries() {
+      if (this.Settings.showUnixHiddenEntries === undefined) {
+        this.Settings.showUnixHiddenEntries = this.DefaultSettings.showUnixHiddenEntries;
       }
-      return exports.Settings.showUnixHiddenEntries;
+      return this.Settings.showUnixHiddenEntries;
     }
 
-    static setShowUnixHiddenEntries(value) {
+    setShowUnixHiddenEntries(value) {
 
-      exports.Settings.showUnixHiddenEntries = value;
+      this.Settings.showUnixHiddenEntries = value;
     }
 
-    static getCheckForUpdates() {
-      if (exports.Settings.checkForUpdates === undefined) {
-        exports.Settings.checkForUpdates = exports.DefaultSettings.checkForUpdates;
+    getCheckForUpdates() {
+      if (this.Settings.checkForUpdates === undefined) {
+        this.Settings.checkForUpdates = this.DefaultSettings.checkForUpdates;
       }
-      return exports.Settings.checkForUpdates;
+      return this.Settings.checkForUpdates;
     }
 
-    static setCheckForUpdates(value) {
+    setCheckForUpdates(value) {
 
-      exports.Settings.checkForUpdates = value;
+      this.Settings.checkForUpdates = value;
     }
 
-    static getPrefixTagContainer() {
-      if (exports.Settings.prefixTagContainer === undefined) {
-        exports.Settings.prefixTagContainer = exports.DefaultSettings.prefixTagContainer;
+    getPrefixTagContainer() {
+      if (this.Settings.prefixTagContainer === undefined) {
+        this.Settings.prefixTagContainer = this.DefaultSettings.prefixTagContainer;
       }
-      return exports.Settings.prefixTagContainer;
+      return this.Settings.prefixTagContainer;
     }
 
-    static setPrefixTagContainer(value) {
+    setPrefixTagContainer(value) {
 
-      exports.Settings.prefixTagContainer = value;
+      this.Settings.prefixTagContainer = value;
     }
 
-    static getTagDelimiter() {
-      if (exports.Settings.tagDelimiter === undefined) {
-        exports.Settings.tagDelimiter = exports.DefaultSettings.tagDelimiter;
+    getTagDelimiter() {
+      if (this.Settings.tagDelimiter === undefined) {
+        this.Settings.tagDelimiter = this.DefaultSettings.tagDelimiter;
       }
-      return exports.Settings.tagDelimiter;
+      return this.Settings.tagDelimiter;
     }
 
-    static setTagDelimiter(value) {
+    setTagDelimiter(value) {
 
-      exports.Settings.tagDelimiter = value;
+      this.Settings.tagDelimiter = value;
     }
 
-    static getCalculateTags() {
-      if (exports.Settings.calculateTags === undefined) {
-        exports.Settings.calculateTags = exports.DefaultSettings.calculateTags;
+    getCalculateTags() {
+      if (this.Settings.calculateTags === undefined) {
+        this.Settings.calculateTags = this.DefaultSettings.calculateTags;
       }
-      return exports.Settings.calculateTags;
+      return this.Settings.calculateTags;
     }
 
-    static setCalculateTags(value) {
+    setCalculateTags(value) {
 
-      exports.Settings.calculateTags = value;
+      this.Settings.calculateTags = value;
     }
 
-    static getLoadLocationMeta() {
-      if (exports.Settings.loadLocationMeta === undefined) {
-        exports.Settings.loadLocationMeta = exports.DefaultSettings.loadLocationMeta;
+    getLoadLocationMeta() {
+      if (this.Settings.loadLocationMeta === undefined) {
+        this.Settings.loadLocationMeta = this.DefaultSettings.loadLocationMeta;
       }
-      return exports.Settings.loadLocationMeta;
+      return this.Settings.loadLocationMeta;
     }
 
-    static setLoadLocationMeta(value) {
+    setLoadLocationMeta(value) {
 
-      exports.Settings.loadLocationMeta = value;
+      this.Settings.loadLocationMeta = value;
     }
 
-    static getUseSearchInSubfolders() {
-      if (exports.Settings.useSearchInSubfolders === undefined) {
-        exports.Settings.useSearchInSubfolders = exports.DefaultSettings.useSearchInSubfolders;
+    getUseSearchInSubfolders() {
+      if (this.Settings.useSearchInSubfolders === undefined) {
+        this.Settings.useSearchInSubfolders = this.DefaultSettings.useSearchInSubfolders;
       }
-      return exports.Settings.useSearchInSubfolders;
+      return this.Settings.useSearchInSubfolders;
     }
 
-    static setUseSearchInSubfolders(value) {
-      exports.Settings.useSearchInSubfolders = value;
+    setUseSearchInSubfolders(value) {
+      this.Settings.useSearchInSubfolders = value;
     }
 
-    static getMaxSearchResultCount() {
-      if (exports.Settings.maxSearchResultCount === undefined) {
-        exports.Settings.maxSearchResultCount = exports.DefaultSettings.maxSearchResultCount;
+    getMaxSearchResultCount() {
+      if (this.Settings.maxSearchResultCount === undefined) {
+        this.Settings.maxSearchResultCount = this.DefaultSettings.maxSearchResultCount;
       }
-      return exports.Settings.maxSearchResultCount;
+      return this.Settings.maxSearchResultCount;
     }
 
-    static setMaxSearchResultCount(value) {
+    setMaxSearchResultCount(value) {
       if (isNaN(value) || value < 0) {
-        value = exports.DefaultSettings.maxSearchResultCount;
+        value = this.DefaultSettings.maxSearchResultCount;
       } else if (value > 2000) {
         value = 2000;
       }
-      exports.Settings.maxSearchResultCount = value;
+      this.Settings.maxSearchResultCount = value;
     }
 
-    static getDefaultThumbnailSize() {
-      if (exports.Settings.defaultThumbnailSize === undefined) {
-        exports.Settings.defaultThumbnailSize = exports.DefaultSettings.defaultThumbnailSize;
+    getDefaultThumbnailSize() {
+      if (this.Settings.defaultThumbnailSize === undefined) {
+        this.Settings.defaultThumbnailSize = this.DefaultSettings.defaultThumbnailSize;
       }
-      return exports.Settings.defaultThumbnailSize;
+      return this.Settings.defaultThumbnailSize;
     }
 
-    static setDefaultThumbnailSize(value) {
-      exports.Settings.defaultThumbnailSize = value;
+    setDefaultThumbnailSize(value) {
+      this.Settings.defaultThumbnailSize = value;
     }
 
-    static getDefaultThumbnailFormat() {
-      if (exports.Settings.defaultThumbnailFormat === undefined) {
-        exports.Settings.defaultThumbnailFormat = exports.DefaultSettings.defaultThumbnailFormat;
+    getDefaultThumbnailFormat() {
+      if (this.Settings.defaultThumbnailFormat === undefined) {
+        this.Settings.defaultThumbnailFormat = this.DefaultSettings.defaultThumbnailFormat;
       }
-      return exports.Settings.defaultThumbnailFormat;
+      return this.Settings.defaultThumbnailFormat;
     }
 
-    static setDefaultThumbnailFormat(value) {
-      exports.Settings.defaultThumbnailFormat = value;
+    setDefaultThumbnailFormat(value) {
+      this.Settings.defaultThumbnailFormat = value;
     }
 
-    static getWatchCurrentDirectory() {
-      if (exports.Settings.watchCurrentDirectory === undefined) {
-        exports.Settings.watchCurrentDirectory = exports.DefaultSettings.watchCurrentDirectory;
+    getWatchCurrentDirectory() {
+      if (this.Settings.watchCurrentDirectory === undefined) {
+        this.Settings.watchCurrentDirectory = this.DefaultSettings.watchCurrentDirectory;
       }
-      return exports.Settings.watchCurrentDirectory;
+      return this.Settings.watchCurrentDirectory;
     }
 
-    static setWatchCurrentDirectory(value) {
-      exports.Settings.watchCurrentDirectory = value;
+    setWatchCurrentDirectory(value) {
+      this.Settings.watchCurrentDirectory = value;
     }
 
-    static getEnableMetaData() {
-      if (exports.Settings.enableMetaData === undefined) {
-        exports.Settings.enableMetaData = exports.DefaultSettings.enableMetaData;
+    getEnableMetaData() {
+      if (this.Settings.enableMetaData === undefined) {
+        this.Settings.enableMetaData = this.DefaultSettings.enableMetaData;
       }
-      return exports.Settings.enableMetaData;
+      return this.Settings.enableMetaData;
     }
 
-    static setEnableMetaData(value) {
+    setEnableMetaData(value) {
 
-      exports.Settings.enableMetaData = value;
+      this.Settings.enableMetaData = value;
     }
 
-    static getSupportedFileTypes() {
-      if (exports.Settings.supportedFileTypes === undefined) {
-        exports.Settings.supportedFileTypes = exports.DefaultSettings.supportedFileTypes;
+    getSupportedFileTypes() {
+      if (this.Settings.supportedFileTypes === undefined) {
+        this.Settings.supportedFileTypes = this.DefaultSettings.supportedFileTypes;
       }
-      return exports.Settings.supportedFileTypes;
+      return this.Settings.supportedFileTypes;
     }
 
-    static setSupportedFileTypes(value) {
+    setSupportedFileTypes(value) {
 
-      exports.Settings.supportedFileTypes = value;
+      this.Settings.supportedFileTypes = value;
     }
 
-    static getNewTextFileContent() {
+    getNewTextFileContent() {
 
-      return exports.DefaultSettings.newTextFileContent;
+      return this.DefaultSettings.newTextFileContent;
     }
 
-    static getNewHTMLFileContent() {
+    getNewHTMLFileContent() {
 
-      return exports.DefaultSettings.newHTMLFileContent;
+      return this.DefaultSettings.newHTMLFileContent;
     }
 
-    static getNewMDFileContent() {
+    getNewMDFileContent() {
 
-      return exports.DefaultSettings.newMDFileContent;
+      return this.DefaultSettings.newMDFileContent;
     }
 
-    static getUseTrashCan() {
-      if (exports.Settings.useTrashCan === undefined) {
-        exports.Settings.useTrashCan = exports.DefaultSettings.useTrashCan;
+    getUseTrashCan() {
+      if (this.Settings.useTrashCan === undefined) {
+        this.Settings.useTrashCan = this.DefaultSettings.useTrashCan;
       }
-      return exports.Settings.useTrashCan;
+      return this.Settings.useTrashCan;
     }
 
-    static setUseTrashCan(value) {
+    setUseTrashCan(value) {
 
-      exports.Settings.useTrashCan = value;
+      this.Settings.useTrashCan = value;
     }
 
-    static getUseOCR() {
-      if (exports.Settings.useOCR === undefined) {
-        exports.Settings.useOCR = exports.DefaultSettings.useOCR;
+    getUseOCR() {
+      if (this.Settings.useOCR === undefined) {
+        this.Settings.useOCR = this.DefaultSettings.useOCR;
       }
-      return exports.Settings.useOCR;
+      return this.Settings.useOCR;
     }
 
-    static setUseOCR(value) {
+    setUseOCR(value) {
 
-      exports.Settings.useOCR = value;
+      this.Settings.useOCR = value;
     }
 
-    static getUseTextExtraction() {
-      if (exports.Settings.useTextExtraction === undefined) {
-        exports.Settings.useTextExtraction = exports.DefaultSettings.useTextExtraction;
+    getUseTextExtraction() {
+      if (this.Settings.useTextExtraction === undefined) {
+        this.Settings.useTextExtraction = this.DefaultSettings.useTextExtraction;
       }
-      return exports.Settings.useTextExtraction;
+      return this.Settings.useTextExtraction;
     }
 
-    static setUseTextExtraction(value) {
+    setUseTextExtraction(value) {
 
-      exports.Settings.useTextExtraction = value;
+      this.Settings.useTextExtraction = value;
     }
 
-    static getUseGenerateThumbnails() {
-      if (exports.Settings.useGenerateThumbnails === undefined) {
-        exports.Settings.useGenerateThumbnails = exports.DefaultSettings.useGenerateThumbnails;
+    getUseGenerateThumbnails() {
+      if (this.Settings.useGenerateThumbnails === undefined) {
+        this.Settings.useGenerateThumbnails = this.DefaultSettings.useGenerateThumbnails;
       }
-      return exports.Settings.useGenerateThumbnails;
+      return this.Settings.useGenerateThumbnails;
     }
 
-    static setUseGenerateThumbnails(value) {
+    setUseGenerateThumbnails(value) {
 
-      exports.Settings.useGenerateThumbnails = value;
+      this.Settings.useGenerateThumbnails = value;
     }
 
-    static getWriteMetaToSidecarFile() {
-      if (exports.Settings.writeMetaToSidecarFile === undefined) {
-        exports.Settings.writeMetaToSidecarFile = exports.DefaultSettings.writeMetaToSidecarFile;
+    getWriteMetaToSidecarFile() {
+      if (this.Settings.writeMetaToSidecarFile === undefined) {
+        this.Settings.writeMetaToSidecarFile = this.DefaultSettings.writeMetaToSidecarFile;
         this.saveSettings();
       }
-      return exports.Settings.writeMetaToSidecarFile;
+      return this.Settings.writeMetaToSidecarFile;
     }
 
-    static setWriteMetaToSidecarFile(value) {
+    setWriteMetaToSidecarFile(value) {
 
-      exports.Settings.writeMetaToSidecarFile = value;
+      this.Settings.writeMetaToSidecarFile = value;
     }
 
-    static getUseDefaultLocation() {
-      if (exports.Settings.useDefaultLocation === undefined) {
-        exports.Settings.useDefaultLocation = exports.DefaultSettings.useDefaultLocation;
+    getUseDefaultLocation() {
+      if (this.Settings.useDefaultLocation === undefined) {
+        this.Settings.useDefaultLocation = this.DefaultSettings.useDefaultLocation;
         this.saveSettings();
       }
-      return exports.Settings.useDefaultLocation;
+      return this.Settings.useDefaultLocation;
     }
 
-    static setUseDefaultLocation(value) {
+    setUseDefaultLocation(value) {
 
-      exports.Settings.useDefaultLocation = value;
+      this.Settings.useDefaultLocation = value;
     }
 
-    static getColoredFileExtensionsEnabled() {
-      if (exports.Settings.coloredFileExtensionsEnabled === undefined) {
-        exports.Settings.coloredFileExtensionsEnabled = exports.DefaultSettings.coloredFileExtensionsEnabled;
+    getColoredFileExtensionsEnabled() {
+      if (this.Settings.coloredFileExtensionsEnabled === undefined) {
+        this.Settings.coloredFileExtensionsEnabled = this.DefaultSettings.coloredFileExtensionsEnabled;
         this.saveSettings();
       }
-      return exports.Settings.coloredFileExtensionsEnabled;
+      return this.Settings.coloredFileExtensionsEnabled;
     }
 
-    static setColoredFileExtensionsEnabled(value) {
+    setColoredFileExtensionsEnabled(value) {
 
-      exports.Settings.coloredFileExtensionsEnabled = value;
+      this.Settings.coloredFileExtensionsEnabled = value;
     }
 
-    static getShowTagAreaOnStartup() {
-      if (exports.Settings.showTagAreaOnStartup === undefined) {
-        exports.Settings.showTagAreaOnStartup = exports.DefaultSettings.showTagAreaOnStartup;
+    getShowTagAreaOnStartup() {
+      if (this.Settings.showTagAreaOnStartup === undefined) {
+        this.Settings.showTagAreaOnStartup = this.DefaultSettings.showTagAreaOnStartup;
         this.saveSettings();
       }
-      return exports.Settings.showTagAreaOnStartup;
+      return this.Settings.showTagAreaOnStartup;
     }
 
-    static setShowTagAreaOnStartup(value) {
+    setShowTagAreaOnStartup(value) {
 
-      exports.Settings.showTagAreaOnStartup = value;
+      this.Settings.showTagAreaOnStartup = value;
     }
 
-    static getDefaultTagColor() {
-      if (exports.Settings.defaultTagColor === undefined) {
-        exports.Settings.defaultTagColor = exports.DefaultSettings.defaultTagColor;
+    getDefaultTagColor() {
+      if (this.Settings.defaultTagColor === undefined) {
+        this.Settings.defaultTagColor = this.DefaultSettings.defaultTagColor;
         this.saveSettings();
       }
-      return exports.Settings.defaultTagColor;
+      return this.Settings.defaultTagColor;
     }
 
-    static setDefaultTagColor(value) {
-      exports.Settings.defaultTagColor = value;
+    setDefaultTagColor(value) {
+      this.Settings.defaultTagColor = value;
     }
 
-    static getDefaultTagTextColor() {
-      if (exports.Settings.defaultTagTextColor === undefined) {
-        exports.Settings.defaultTagTextColor = exports.DefaultSettings.defaultTagTextColor;
+    getDefaultTagTextColor() {
+      if (this.Settings.defaultTagTextColor === undefined) {
+        this.Settings.defaultTagTextColor = this.DefaultSettings.defaultTagTextColor;
         this.saveSettings();
       }
-      return exports.Settings.defaultTagTextColor;
+      return this.Settings.defaultTagTextColor;
     }
 
-    static setDefaultTagTextColor(value) {
-      exports.Settings.defaultTagTextColor = value;
+    setDefaultTagTextColor(value) {
+      this.Settings.defaultTagTextColor = value;
     }
 
     //////////////////// API methods ///////////////////
-    static getFileTypeEditor(fileTypeExt) {
-      for (let i = 0; i < exports.Settings.supportedFileTypes.length; i++) {
-        if (exports.Settings.supportedFileTypes[i].type === fileTypeExt) {
-          return exports.Settings.supportedFileTypes[i].editor;
+    getFileTypeEditor(fileTypeExt) {
+      for (let i = 0; i < this.Settings.supportedFileTypes.length; i++) {
+        if (this.Settings.supportedFileTypes[i].type === fileTypeExt) {
+          return this.Settings.supportedFileTypes[i].editor;
         }
       }
       return false;
     }
 
-    static getFileTypeViewer(fileTypeExt) {
-      for (let i = 0; i < exports.Settings.supportedFileTypes.length; i++) {
-        if (exports.Settings.supportedFileTypes[i].type === fileTypeExt) {
-          return exports.Settings.supportedFileTypes[i].viewer;
+    getFileTypeViewer(fileTypeExt) {
+      for (let i = 0; i < this.Settings.supportedFileTypes.length; i++) {
+        if (this.Settings.supportedFileTypes[i].type === fileTypeExt) {
+          return this.Settings.supportedFileTypes[i].viewer;
         }
       }
       return false;
     }
 
     // Returns the tag information from the setting for a given tag
-    static findTag(tagName) {
-      for (let i = 0; i < exports.Settings.tagGroups.length; i++) {
-        for (let j = 0; j < exports.Settings.tagGroups[i].children.length; j++) {
-          // console.log("Current tagname "+exports.Settings.tagGroups[i].children[j].title);
-          if (exports.Settings.tagGroups[i].children[j].title === tagName) {
-            return exports.Settings.tagGroups[i].children[j];
+    findTag(tagName) {
+      for (let i = 0; i < this.Settings.tagGroups.length; i++) {
+        for (let j = 0; j < this.Settings.tagGroups[i].children.length; j++) {
+          // console.log("Current tagname "+this.Settings.tagGroups[i].children[j].title);
+          if (this.Settings.tagGroups[i].children[j].title === tagName) {
+            return this.Settings.tagGroups[i].children[j];
           }
         }
       }
       return false;
     }
 
-    static getAllTags() {
+    getAllTags() {
       let allTags = [];
-      for (let i = 0; i < exports.Settings.tagGroups.length; i++) {
-        // console.log("Current taggroup "+exports.Settings.tagGroups[i].key);
-        for (let j = 0; j < exports.Settings.tagGroups[i].children.length; j++) {
-          // console.log("Current tagname "+exports.Settings.tagGroups[i].children[j].title);
-          if (exports.Settings.tagGroups[i].children[j].type === 'plain') {
-            allTags.push(exports.Settings.tagGroups[i].children[j].title);
+      for (let i = 0; i < this.Settings.tagGroups.length; i++) {
+        // console.log("Current taggroup "+this.Settings.tagGroups[i].key);
+        for (let j = 0; j < this.Settings.tagGroups[i].children.length; j++) {
+          // console.log("Current tagname "+this.Settings.tagGroups[i].children[j].title);
+          if (this.Settings.tagGroups[i].children[j].type === 'plain') {
+            allTags.push(this.Settings.tagGroups[i].children[j].title);
           }
         }
       }
       return allTags;
     }
 
-    static getTagData(tagTitle, tagGroupKey) {
-      for (let i = 0; i < exports.Settings.tagGroups.length; i++) {
-        if (exports.Settings.tagGroups[i].key === tagGroupKey) {
-          for (let j = 0; j < exports.Settings.tagGroups[i].children.length; j++) {
-            if (exports.Settings.tagGroups[i].children[j].title === tagTitle) {
-              return exports.Settings.tagGroups[i].children[j];
+    getTagData(tagTitle, tagGroupKey) {
+      for (let i = 0; i < this.Settings.tagGroups.length; i++) {
+        if (this.Settings.tagGroups[i].key === tagGroupKey) {
+          for (let j = 0; j < this.Settings.tagGroups[i].children.length; j++) {
+            if (this.Settings.tagGroups[i].children[j].title === tagTitle) {
+              return this.Settings.tagGroups[i].children[j];
             }
           }
         }
       }
     }
 
-    static getTagGroupData(tagGroupKey) {
-      for (let i = 0; i < exports.Settings.tagGroups.length; i++) {
-        if (exports.Settings.tagGroups[i].key === tagGroupKey) {
-          return exports.Settings.tagGroups[i];
+    getTagGroupData(tagGroupKey) {
+      for (let i = 0; i < this.Settings.tagGroups.length; i++) {
+        if (this.Settings.tagGroups[i].key === tagGroupKey) {
+          return this.Settings.tagGroups[i];
         }
       }
     }
 
-    static getAllTagGroupData() {
-      if (exports.Settings.tagGroups.length > 0) {
-        return exports.Settings.tagGroups;
+    getAllTagGroupData() {
+      if (this.Settings.tagGroups.length > 0) {
+        return this.Settings.tagGroups;
       }
     }
 
-    static deleteTagGroup(tagData) {
-      for (let i = 0; i < exports.Settings.tagGroups.length; i++) {
-        if (exports.Settings.tagGroups[i].key === tagData.key) {
-          console.log('Deleting taggroup ' + exports.Settings.tagGroups[i].key);
-          exports.Settings.tagGroups.splice(i, 1);
+    deleteTagGroup(tagData) {
+      for (let i = 0; i < this.Settings.tagGroups.length; i++) {
+        if (this.Settings.tagGroups[i].key === tagData.key) {
+          console.log('Deleting taggroup ' + this.Settings.tagGroups[i].key);
+          this.Settings.tagGroups.splice(i, 1);
           break;
         }
       }
       this.saveSettings();
     }
 
-    static editTag(tagData, newTagName, newColor, newTextColor, newKeyBinding) {
-      for (let i = 0; i < exports.Settings.tagGroups.length; i++) {
-        if (exports.Settings.tagGroups[i].key === tagData.parentKey) {
-          for (let j = 0; j < exports.Settings.tagGroups[i].children.length; j++) {
-            if (exports.Settings.tagGroups[i].children[j].title === tagData.title) {
-              exports.Settings.tagGroups[i].children[j].title = newTagName;
-              exports.Settings.tagGroups[i].children[j].color = newColor;
-              exports.Settings.tagGroups[i].children[j].textcolor = newTextColor;
-              exports.Settings.tagGroups[i].children[j].keyBinding = newKeyBinding;
+    editTag(tagData, newTagName, newColor, newTextColor, newKeyBinding) {
+      for (let i = 0; i < this.Settings.tagGroups.length; i++) {
+        if (this.Settings.tagGroups[i].key === tagData.parentKey) {
+          for (let j = 0; j < this.Settings.tagGroups[i].children.length; j++) {
+            if (this.Settings.tagGroups[i].children[j].title === tagData.title) {
+              this.Settings.tagGroups[i].children[j].title = newTagName;
+              this.Settings.tagGroups[i].children[j].color = newColor;
+              this.Settings.tagGroups[i].children[j].textcolor = newTextColor;
+              this.Settings.tagGroups[i].children[j].keyBinding = newKeyBinding;
               break;
             }
           }
@@ -1164,12 +1168,12 @@ define((require, exports, module) => {
       this.saveSettings();
     }
 
-    static deleteTag(tagData) {
-      for (let i = 0; i < exports.Settings.tagGroups.length; i++) {
-        if (exports.Settings.tagGroups[i].key === tagData.parentKey) {
-          for (let j = 0; j < exports.Settings.tagGroups[i].children.length; j++) {
-            if (exports.Settings.tagGroups[i].children[j].title === tagData.title) {
-              exports.Settings.tagGroups[i].children.splice(j, 1);
+    deleteTag(tagData) {
+      for (let i = 0; i < this.Settings.tagGroups.length; i++) {
+        if (this.Settings.tagGroups[i].key === tagData.parentKey) {
+          for (let j = 0; j < this.Settings.tagGroups[i].children.length; j++) {
+            if (this.Settings.tagGroups[i].children[j].title === tagData.title) {
+              this.Settings.tagGroups[i].children.splice(j, 1);
               break;
             }
           }
@@ -1178,7 +1182,7 @@ define((require, exports, module) => {
       exports.saveSettings();
     }
 
-    static moveTag(tagData, targetTagGroupKey) {
+    moveTag(tagData, targetTagGroupKey) {
       let targetTagGroupData = getTagGroupData(targetTagGroupKey);
       if (createTag(targetTagGroupData, tagData.title, tagData.color, tagData.textcolor)) {
         deleteTag(tagData);
@@ -1186,8 +1190,8 @@ define((require, exports, module) => {
       }
     }
 
-    static createTag(tagData, newTagName, newTagColor, newTagTextColor) {
-      exports.Settings.tagGroups.forEach((value) => {
+    createTag(tagData, newTagName, newTagColor, newTagTextColor) {
+      this.Settings.tagGroups.forEach((value) => {
         if (value.key === tagData.key) {
           //console.log("Creating tag: "+newTagName+" with parent: "+tagData.key);
           let tagExistsInGroup = false;
@@ -1217,16 +1221,16 @@ define((require, exports, module) => {
       return true;
     }
 
-    static editTagGroup(tagData, tagGroupName, tagGroupColor, tagGroupTextColor, propagateColorToTags) {
-      for (let i = 0; i < exports.Settings.tagGroups.length; i++) {
-        if (exports.Settings.tagGroups[i].key === tagData.key) {
-          exports.Settings.tagGroups[i].title = tagGroupName;
-          exports.Settings.tagGroups[i].color = tagGroupColor;
-          exports.Settings.tagGroups[i].textcolor = tagGroupTextColor;
+    editTagGroup(tagData, tagGroupName, tagGroupColor, tagGroupTextColor, propagateColorToTags) {
+      for (let i = 0; i < this.Settings.tagGroups.length; i++) {
+        if (this.Settings.tagGroups[i].key === tagData.key) {
+          this.Settings.tagGroups[i].title = tagGroupName;
+          this.Settings.tagGroups[i].color = tagGroupColor;
+          this.Settings.tagGroups[i].textcolor = tagGroupTextColor;
           if (propagateColorToTags) {
-            for (let j = 0; j < exports.Settings.tagGroups[i].children.length; j++) {
-              exports.Settings.tagGroups[i].children[j].color = tagGroupColor;
-              exports.Settings.tagGroups[i].children[j].textcolor = tagGroupTextColor;
+            for (let j = 0; j < this.Settings.tagGroups[i].children.length; j++) {
+              this.Settings.tagGroups[i].children[j].color = tagGroupColor;
+              this.Settings.tagGroups[i].children[j].textcolor = tagGroupTextColor;
             }
           }
           break;
@@ -1235,25 +1239,25 @@ define((require, exports, module) => {
       this.saveSettings();
     }
 
-    static duplicateTagGroup(tagData, tagGroupName, tagGroupKey) {
+    duplicateTagGroup(tagData, tagGroupName, tagGroupKey) {
       let newTagGroupModel;
-      for (let i = 0; i < exports.Settings.tagGroups.length; i++) {
-        if (exports.Settings.tagGroups[i].key === tagData.key) {
-          newTagGroupModel = JSON.parse(JSON.stringify(exports.Settings.tagGroups[i]));
+      for (let i = 0; i < this.Settings.tagGroups.length; i++) {
+        if (this.Settings.tagGroups[i].key === tagData.key) {
+          newTagGroupModel = JSON.parse(JSON.stringify(this.Settings.tagGroups[i]));
           break;
         }
       }
       newTagGroupModel.title = tagGroupName;
       newTagGroupModel.key = tagGroupKey;
       console.log('Creating taggroup: ' + JSON.stringify(newTagGroupModel) + ' with key: ' + tagGroupKey);
-      exports.Settings.tagGroups.push(newTagGroupModel);
+      this.Settings.tagGroups.push(newTagGroupModel);
       this.saveSettings();
     }
 
-    static sortTagGroup(tagData) {
-      for (let i = 0; i < exports.Settings.tagGroups.length; i++) {
-        if (exports.Settings.tagGroups[i].key === tagData.key) {
-          exports.Settings.tagGroups[i].children.sort((a, b) => {
+    sortTagGroup(tagData) {
+      for (let i = 0; i < this.Settings.tagGroups.length; i++) {
+        if (this.Settings.tagGroups[i].key === tagData.key) {
+          this.Settings.tagGroups[i].children.sort((a, b) => {
             return a.title.localeCompare(b.title);
           });
           break;
@@ -1262,7 +1266,7 @@ define((require, exports, module) => {
       this.saveSettings();
     }
 
-    static createTagGroup(tagData, tagGroupName, tagGroupColor, tagGroupTextColor) {
+    createTagGroup(tagData, tagGroupName, tagGroupColor, tagGroupTextColor) {
       let newTagGroupModel = JSON.parse(JSON.stringify(tagGroupTemplate));
       newTagGroupModel.title = tagGroupName;
       newTagGroupModel.color = tagGroupColor;
@@ -1270,14 +1274,14 @@ define((require, exports, module) => {
       //newTagGroupModel.children = [];
       newTagGroupModel.key = '' + TSCORE.Utils.getRandomInt(10000, 99999);
       console.log('Creating taggroup: ' + JSON.stringify(newTagGroupModel) + ' with key: ' + newTagGroupModel.key);
-      exports.Settings.tagGroups.push(newTagGroupModel);
+      this.Settings.tagGroups.push(newTagGroupModel);
       this.saveSettings();
     }
 
-    static moveTagGroup(tagData, direction) {
+    moveTagGroup(tagData, direction) {
       let targetPosition;
       let currentPosition;
-      exports.Settings.tagGroups.forEach((value, index) => {
+      this.Settings.tagGroups.forEach((value, index) => {
         if (value.key === tagData.key) {
           currentPosition = index;
         }
@@ -1289,16 +1293,16 @@ define((require, exports, module) => {
         targetPosition = currentPosition + 1;
       }
       // Check if target position is within the taggroups array range
-      if (targetPosition < 0 || targetPosition >= exports.Settings.tagGroups.length || targetPosition === currentPosition) {
+      if (targetPosition < 0 || targetPosition >= this.Settings.tagGroups.length || targetPosition === currentPosition) {
         return false;
       }
-      let tmpTagGroup = exports.Settings.tagGroups[currentPosition];
-      exports.Settings.tagGroups[currentPosition] = exports.Settings.tagGroups[targetPosition];
-      exports.Settings.tagGroups[targetPosition] = tmpTagGroup;
+      let tmpTagGroup = this.Settings.tagGroups[currentPosition];
+      this.Settings.tagGroups[currentPosition] = this.Settings.tagGroups[targetPosition];
+      this.Settings.tagGroups[targetPosition] = tmpTagGroup;
       this.saveSettings();
     }
 
-    static createLocation(name, location, perspectiveId) {
+    createLocation(name, location, perspectiveId) {
       let newLocationModel = JSON.parse(JSON.stringify(locationTemplate));
       name = name.replace('\\', '\\\\');
       name = name.replace('\\\\\\', '\\\\');
@@ -1307,7 +1311,7 @@ define((require, exports, module) => {
       newLocationModel.path = location;
       newLocationModel.perspective = perspectiveId;
       let createLoc = true;
-      exports.Settings.tagspacesList.forEach((value) => {
+      this.Settings.tagspacesList.forEach((value) => {
         if (value.path === newLocationModel.path) {
           TSCORE.showAlertDialog($.i18n.t('ns.dialogs:selectedPathExistContentAlert'), $.i18n.t('ns.dialogs:selectedPathExistTitleAlert'));
           createLoc = false;
@@ -1318,18 +1322,18 @@ define((require, exports, module) => {
         }
       });
       if (createLoc) {
-        exports.Settings.tagspacesList.push(newLocationModel);
+        this.Settings.tagspacesList.push(newLocationModel);
         this.saveSettings();
       }
     }
 
-    static editLocation(oldName, newName, newLocation, perspectiveId) {
+    editLocation(oldName, newName, newLocation, perspectiveId) {
       //        name = name.replace("\\", "\\\\");
       //        name = name.replace("\\\\\\", "\\\\");
-      //        name = name.replace("\\\\\\\\", "\\\\");   
+      //        name = name.replace("\\\\\\\\", "\\\\");
       console.log('Old Name: ' + oldName + ' New Name: ' + newName + ' New Loc: ' + newLocation);
       let editLoc = true;
-      exports.Settings.tagspacesList.forEach((value) => {
+      this.Settings.tagspacesList.forEach((value) => {
         /* if(value.path == newLocation) {
         TSCORE.showAlertDialog("Selected path is already used by a location!","Duplicated Location Path");
         editLocation = false;
@@ -1340,7 +1344,7 @@ define((require, exports, module) => {
         }
       });
       if (editLoc) {
-        exports.Settings.tagspacesList.forEach((value) => {
+        this.Settings.tagspacesList.forEach((value) => {
           if (value.name === oldName) {
             value.name = newName;
             value.path = newLocation;
@@ -1351,9 +1355,9 @@ define((require, exports, module) => {
       }
     }
 
-    static getLocation(path) {
+    getLocation(path) {
       let location;
-      exports.Settings.tagspacesList.forEach((value) => {
+      this.Settings.tagspacesList.forEach((value) => {
         if (value.path === path) {
           location = value;
         }
@@ -1361,48 +1365,48 @@ define((require, exports, module) => {
       return location;
     }
 
-    static deleteLocation(name) {
-      for (let i = 0; i < exports.Settings.tagspacesList.length; i++) {
-        console.log('Traversing connections ' + exports.Settings.tagspacesList[i].name + ' searching for ' + name);
-        if (exports.Settings.tagspacesList[i].name === name) {
-          console.log('Deleting connections ' + exports.Settings.tagspacesList[i].name);
-          exports.Settings.tagspacesList.splice(i, 1);
+    deleteLocation(name) {
+      for (let i = 0; i < this.Settings.tagspacesList.length; i++) {
+        console.log('Traversing connections ' + this.Settings.tagspacesList[i].name + ' searching for ' + name);
+        if (this.Settings.tagspacesList[i].name === name) {
+          console.log('Deleting connections ' + this.Settings.tagspacesList[i].name);
+          this.Settings.tagspacesList.splice(i, 1);
           break;
         }
       }
       this.saveSettings();
     }
 
-    static updateSettingMozillaPreferences(settings) {
+    updateSettingMozillaPreferences(settings) {
       let tmpSettings = JSON.parse(settings);
       if (tmpSettings !== null) {
-        exports.Settings = tmpSettings;
+        this.Settings = tmpSettings;
         console.log('Settings loaded from firefox preferences: ' + tmpSettings);
       } else {
-        exports.Settings = exports.DefaultSettings;
+        this.Settings = this.DefaultSettings;
         console.log('Default settings loaded(Firefox)!');
       }
       this.saveSettings();
     }
 
-    static loadDefaultSettings() {
-      exports.Settings = exports.DefaultSettings;
+    loadDefaultSettings() {
+      this.Settings = this.DefaultSettings;
       this.saveSettings();
       TSCORE.reloadUI();
       console.log('Default settings loaded.');
     }
 
-    static restoreDefaultTagGroups() {
-      exports.DefaultSettings.tagGroups.forEach((value, index) => {
-        exports.Settings.tagGroups.push(exports.DefaultSettings.tagGroups[index]);
-        exports.Settings.tagGroups[index].key = TSCORE.Utils.guid();
+    restoreDefaultTagGroups() {
+      this.DefaultSettings.tagGroups.forEach((value, index) => {
+        this.Settings.tagGroups.push(this.DefaultSettings.tagGroups[index]);
+        this.Settings.tagGroups[index].key = TSCORE.Utils.guid();
       });
       this.saveSettings();
       TSCORE.generateTagGroups();
       TSCORE.showSuccessDialog($.i18n.t('ns.dialogs:recreateDefaultSuccessMessage'));
     }
 
-    static loadSettingsLocalStorage() {
+    loadSettingsLocalStorage() {
       try {
         let tmpSettings = JSON.parse(localStorage.getItem('tagSpacesSettings'));
         //Cordova try to load saved setting in app storage
@@ -1416,49 +1420,49 @@ define((require, exports, module) => {
             tmpSettings.tagGroups = appStorageTagGroups.tagGroups;
           }
         }
-        //console.log("Settings: "+JSON.stringify(tmpSettings));        
+        //console.log("Settings: "+JSON.stringify(tmpSettings));
         if (tmpSettings !== null) {
-          exports.Settings = tmpSettings;
+          this.Settings = tmpSettings;
         } else {
           // If no settings found in the local storage,
           // the application runs for the first time.
           firstRun = true;
         }
-        console.log('Loaded settings from local storage: '); //+ JSON.stringify(exports.Settings));
+        console.log('Loaded settings from local storage: '); //+ JSON.stringify(this.Settings));
       } catch (ex) {
         console.log('Loading settings from local storage failed due exception: ' + ex);
       }
     }
 
     // Save setting
-    static saveSettings() {
+    saveSettings() {
       // TODO Make a file based json backup
       // Making a backup of the last settings
       localStorage.setItem('tagSpacesSettingsBackup1', localStorage.getItem('tagSpacesSettings'));
       // Storing setting in the local storage of mozilla and chorme
-      localStorage.setItem('tagSpacesSettings', JSON.stringify(exports.Settings));
+      localStorage.setItem('tagSpacesSettings', JSON.stringify(this.Settings));
       // Storing settings in firefox native preferences
       if (isFirefox || isChrome || isCordova) {
-        TSCORE.IO.saveSettings(JSON.stringify(exports.Settings));
+        TSCORE.IO.saveSettings(JSON.stringify(this.Settings));
         if (isCordova) {
-          TSCORE.IO.saveSettingsTags(JSON.stringify(exports.Settings.tagGroups));
+          TSCORE.IO.saveSettingsTags(JSON.stringify(this.Settings.tagGroups));
         }
       }
       console.log('Tagspace Settings Saved!');
     }
 
-    static _updateKeyBindingsSetting() {
-      if (exports.Settings.keyBindings === undefined) {
-        exports.Settings.keyBindings = exports.DefaultSettings.keyBindings;
+    _updateKeyBindingsSetting() {
+      if (this.Settings.keyBindings === undefined) {
+        this.Settings.keyBindings = this.DefaultSettings.keyBindings;
         this.saveSettings();
       }
     }
 
-    static exportTagGroups() {
-      let jsonFormat = '{ "appName": "' + TSCORE.Config.DefaultSettings.appName +
-        '", "appVersion": "' + TSCORE.Config.DefaultSettings.appVersion +
-        '", "appBuild": "' + TSCORE.Config.DefaultSettings.appBuild +
-        '", "settingsVersion": ' + TSCORE.Config.DefaultSettings.settingsVersion +
+    exportTagGroups() {
+      let jsonFormat = '{ "appName": "' + this.DefaultSettings.appName +
+        '", "appVersion": "' + this.DefaultSettings.appVersion +
+        '", "appBuild": "' + this.DefaultSettings.appBuild +
+        '", "settingsVersion": ' + this.DefaultSettings.settingsVersion +
         ', "tagGroups": ';
 
       let getAllTags = [];
