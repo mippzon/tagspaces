@@ -34,7 +34,7 @@ define(function(require, exports, module) {
   var tsPersManager = require('tspersmanager');
   var tsTagUtils = require('tstagutils');
   var tsFileOpener = require('tsfileopener');
-  var tsTagsUI = require('tstagsui');
+  var tsTagsUI = require('js/tags.ui').TSTags;
   var tsDirectoriesUI = require('tsdirectoriesui');
   var tsCoreUI = require('tscoreui');
   var tsSearch = require('tssearch');
@@ -47,7 +47,7 @@ define(function(require, exports, module) {
   var tsExtManager = require('tsextmanager');
   var TSCORE = require('tscore');
   //var tsAudioRecorderUI = require('tsaudiorecorderui');
-  var tsCalendarUI = require('tscalendarui');
+  var tsCalendarUI = require('tscalendarui').TSCalendar;
 
   // Defining variables
   var currentPath;
