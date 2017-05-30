@@ -110,7 +110,7 @@ define((require, exports, module) => {
       $('#tagTreeMenuDeleteTag').click(() => {
         TSCORE.showConfirmDialog('Delete Tag', 'Do you want to delete this tag from the taggroup?', () => {
           TSCORE.Config.deleteTag(TSCORE.selectedTagData);
-          this._generateTagGroups();
+          this.generateTagGroups();
         });
       });
 
@@ -119,7 +119,7 @@ define((require, exports, module) => {
         TSCORE.showDialogTagCreate();
       });
 
-      $('#tagGroupMenuImportTags').on('click', importTagGroups);
+      $('#tagGroupMenuImportTags').on('click', this._importTagGroups);
 
       $('#tagGroupMenuCreateTagGroup').click(() => {
         TSCORE.showDialogTagGroupCreate();
@@ -127,17 +127,17 @@ define((require, exports, module) => {
 
       $('#tagGroupSort').click(() => {
         TSCORE.Config.sortTagGroup(TSCORE.selectedTagData);
-        this._generateTagGroups();
+        this.generateTagGroups();
       });
 
       $('#tagGroupMenuMoveUp').click(() => {
         TSCORE.Config.moveTagGroup(TSCORE.selectedTagData, 'up');
-        this._generateTagGroups();
+        this.generateTagGroups();
       });
 
       $('#tagGroupMenuMoveDown').click(() => {
         TSCORE.Config.moveTagGroup(TSCORE.selectedTagData, 'down');
-        this._generateTagGroups();
+        this.generateTagGroups();
       });
 
       $('#tagGroupMenuEdit').click(() => {
@@ -149,14 +149,14 @@ define((require, exports, module) => {
           tagGroup: TSCORE.selectedTagData.title
         }), () => {
           TSCORE.Config.deleteTagGroup(TSCORE.selectedTagData);
-          this._generateTagGroups();
+          this.generateTagGroups();
         });
       });
 
       // Dialogs
       $('#editTagInTreeButton').click(() => {
         TSCORE.Config.editTag(TSCORE.selectedTagData, $('#tagInTreeName').val(), $('#tagColor').val(), $('#tagTextColor').val(), $('#tagInTreeKeyBinding').val());
-        this._generateTagGroups();
+        this.generateTagGroups();
         TSCORE.PerspectiveManager.refreshFileListContainer();
       });
 
@@ -181,14 +181,14 @@ define((require, exports, module) => {
         tags.forEach((value) => {
           TSCORE.Config.createTag(TSCORE.selectedTagData, value);
         });
-        this._generateTagGroups();
+        this.generateTagGroups();
       });
 
-      $('#createTagGroupButton').on("click", createTagGroup);
+      $('#createTagGroupButton').on("click", this._createTagGroup);
 
       $('#editTagGroupButton').click(() => {
         TSCORE.Config.editTagGroup(TSCORE.selectedTagData, $('#tagGroupName').val(), $('#editTagGroupBackgroundColor').val(), $('#editTagGroupForegroundColor').val(), $('#colorChangesToAllTags').prop('checked'));
-        this._generateTagGroups();
+        this.generateTagGroups();
       });
     }
 
@@ -218,7 +218,7 @@ define((require, exports, module) => {
 
     static _createTagGroup() {
       TSCORE.Config.createTagGroup(TSCORE.selectedTagData, $('#newTagGroupName').val(), $('#tagGroupBackgroundColor').val(), $('#tagGroupForegroundColor').val());
-      this._generateTagGroups();
+      this.generateTagGroups();
     }
 
     static generateTagGroups() {
@@ -285,7 +285,7 @@ define((require, exports, module) => {
               };
             },(tag.title)); // jshint ignore:line
           }
-          tag.style = generateTagStyle(tag);
+          tag.style = this._generateTagStyle(tag);
         }
       }
       $tagGroupsContent.html(tagGroupsTmpl({
@@ -353,7 +353,7 @@ define((require, exports, module) => {
               let targetTagGroupData = TSCORE.Config.getTagGroupData(targetTagGroupKey);
               TSCORE.Config.createTag(targetTagGroupData, tagAttr, defaultTagColor, defaultTagTextColor);
             }
-            this._generateTagGroups();
+            this.generateTagGroups();
             $(ui.helper).remove();
           }
         });
@@ -467,7 +467,7 @@ define((require, exports, module) => {
           context.tags.push({
             filepath: filePath,
             tag: tags[i],
-            style: generateTagStyle(TSCORE.Config.findTag(tags[i]))
+            style: _generateTagStyle(TSCORE.Config.findTag(tags[i]))
           });
         }
       }
@@ -476,7 +476,7 @@ define((require, exports, module) => {
         for (let i = 0; i < metaTags.length; i++) {
           let tag = metaTags[i];
           if (!tag.style) {
-            tag.style = generateTagStyle(TSCORE.Config.findTag(tag.tag));
+            tag.style = _generateTagStyle(TSCORE.Config.findTag(tag.tag));
           }
         }
 
@@ -486,7 +486,7 @@ define((require, exports, module) => {
     }
 
     // Get the color for a tag
-    static generateTagStyle(tagObject) {
+    static _generateTagStyle(tagObject) {
       let tagTextColor = TSCORE.Config.getDefaultTagTextColor();
       let tagColor = TSCORE.Config.getDefaultTagColor();
 
@@ -540,7 +540,7 @@ define((require, exports, module) => {
               TSCORE.Config.addTagGroup(value);
             });
             TSCORE.Config.saveSettings();
-            this._generateTagGroups();
+            this.generateTagGroups();
           });
         }
         $('#dialogImportTags').i18n();
@@ -732,7 +732,7 @@ define((require, exports, module) => {
         minimumInputLength: 1,
         selectOnBlur: true,
         formatSelectionCssClass: (tag, container) => {
-          let style = generateTagStyle(TSCORE.Config.findTag(tag.text));
+          let style = _generateTagStyle(TSCORE.Config.findTag(tag.text));
           if (style) {
             $(container).parent().attr("style", style);
           }
