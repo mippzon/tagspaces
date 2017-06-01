@@ -35,7 +35,7 @@ define(function(require, exports, module) {
   var tsTagUtils = require('tstagutils');
   var tsFileOpener = require('tsfileopener').TSFileOpener;
   var tsTagsUI = new (require('js/tags.ui').TSTags)();
-  var tsDirectoriesUI = require('tsdirectoriesui');
+  var tsDirectoriesUI = require('tsdirectoriesui').TSDirectoriesUI;
   var tsCoreUI = require('tscoreui');
   var tsSearch = require('tssearch');
   var tsSearchUI = require('tssearchui');
