@@ -6,8 +6,6 @@
 define((require, exports, module) => {
   'use strict';
 
-  console.log('Loading directories.ui.js ...');
-
   const TSCORE = require('tscore');
   const tsExtManager = require('tsextmanager');
 
@@ -112,8 +110,11 @@ define((require, exports, module) => {
   );
 
   class TSDirectoriesUI {
+    constructor() {
+      console.log('Loading directories.ui.js ...');
+    }
 
-    static openLocation(path) {
+    openLocation(path) {
       let originalPath = path;
       console.log('Opening location in : ' + path);
 
@@ -174,7 +175,7 @@ define((require, exports, module) => {
       }
     }
 
-    static getDirHistoryItem(path) {
+    getDirHistoryItem(path) {
       for (let i = 0; i < directoryHistory.length; i++) {
         if (directoryHistory[i].path === path) {
           return directoryHistory[i];
@@ -182,7 +183,7 @@ define((require, exports, module) => {
       }
     }
 
-    static _loadFolderMetaData(path, element) {
+    _loadFolderMetaData(path, element) {
       let historyItem = this.getDirHistoryItem(path);
       TSCORE.Meta.loadFolderMetaDataPromise(path).then((metaData) => {
         historyItem.metaData = metaData;
@@ -197,7 +198,7 @@ define((require, exports, module) => {
       });
     }
 
-    static _loadMetaTagGroups(metaData) {
+    _loadMetaTagGroups(metaData) {
       //Load tagGroups only from location folder
       if (TSCORE.Config.getLastOpenedLocation().indexOf(TSCORE.currentPath) >= 0) {
         if (metaTagGroupsHistory) {
@@ -215,7 +216,7 @@ define((require, exports, module) => {
       }
     }
 
-    static generateFolderTags(tags, $directoryTagsArea) {
+    generateFolderTags(tags, $directoryTagsArea) {
       if ($directoryTagsArea) {
         $directoryTagsArea.empty();
       }
@@ -242,7 +243,7 @@ define((require, exports, module) => {
       $("#locationContent .dropDownIcon").hide();
     }
 
-    static updateSubDirs(dirList) {
+    updateSubDirs(dirList) {
       //console.log("Updating subdirs(TSCORE)..."+JSON.stringify(dirList));
       let hasSubFolders = false;
       for (let i = 0; i < directoryHistory.length; i++) {
@@ -267,7 +268,7 @@ define((require, exports, module) => {
       this._handleDirCollapsion();
     }
 
-    static _generateAlternativeDirPath() {
+    _generateAlternativeDirPath() {
       console.log('Generating Alternative Directory Path...');
 
       let $alternativeNavigator = $('#alternativeNavigator');
@@ -322,7 +323,7 @@ define((require, exports, module) => {
       }
     }
 
-    static _generateDirPath() {
+    _generateDirPath() {
       console.log('Generating Directory Path...');
       let $locationContent = $('#locationContent');
       $locationContent.children().remove();
@@ -388,7 +389,7 @@ define((require, exports, module) => {
       });
     }
 
-    static _handleDirCollapsion() {
+    _handleDirCollapsion() {
       $('#locationContent').find('.accordion-heading').each(() => {
         let key = $(this).data('path');
         console.log('Entered Header for: ' + key);
@@ -406,7 +407,7 @@ define((require, exports, module) => {
       });
     }
 
-    static _getDirectoryCollapsed(directoryPath) {
+    _getDirectoryCollapsed(directoryPath) {
       for (let i = 0; i < directoryHistory.length; i++) {
         if (directoryHistory[i].path === directoryPath) {
           return directoryHistory[i].collapsed;
@@ -414,7 +415,7 @@ define((require, exports, module) => {
       }
     }
 
-    static _setDirectoryCollapse(directoryPath, collapsed) {
+    _setDirectoryCollapse(directoryPath, collapsed) {
       for (let i = 0; i < directoryHistory.length; i++) {
         if (directoryHistory[i].path === directoryPath) {
           directoryHistory[i].collapsed = collapsed;
@@ -422,7 +423,7 @@ define((require, exports, module) => {
       }
     }
 
-    static navigateToDirectory(directoryPath) {
+    navigateToDirectory(directoryPath) {
       console.log('Navigating to directory: ' + directoryPath);
       let indexOfDots = directoryPath.indexOf("/..");
       if (indexOfDots === (directoryPath.length - 3)) {
@@ -496,7 +497,7 @@ define((require, exports, module) => {
       });
     }
 
-    static _listDirectory(dirPath) {
+    _listDirectory(dirPath) {
       TSCORE.showLoadingAnimation();
       //TSCORE.PerspectiveManager.removeAllFiles();
       TSCORE.IO.listDirectoryPromise(dirPath).then((entries) => {
@@ -531,7 +532,7 @@ define((require, exports, module) => {
       }
     }
 
-    static initUI() {
+    initUI() {
       // Context Menus
       $('body').on('contextmenu click', '.directoryActions', () => {
         TSCORE.hideAllDropDownMenus();
@@ -591,7 +592,7 @@ define((require, exports, module) => {
 
     }
 
-    static _saveFolderTags(event) {
+    _saveFolderTags(event) {
       let newTags = $(this).val();
       console.log("Tags: " + newTags);
       TSCORE.Meta.loadFolderMetaDataPromise(TSCORE.currentPath).then((metaData) => {
@@ -603,7 +604,7 @@ define((require, exports, module) => {
       });
     }
 
-    static _initFolderProperties() {
+    _initFolderProperties() {
       $('#folderPathProperty').val(TSCORE.currentPath);
 
       $('#folderTagsProperty').off();
@@ -658,7 +659,7 @@ define((require, exports, module) => {
     }
 
     // TODO handle the case: changing to next file/close while in edit mode
-    static _editFolderDescription() {
+    _editFolderDescription() {
       if (TSCORE.PRO) {
         if (TSCORE.Config.getEnableMetaData()) {
           $('#folderDescriptionProperty').show();
@@ -676,7 +677,7 @@ define((require, exports, module) => {
       }
     }
 
-    static _cancelEditFolderDescription() {
+    _cancelEditFolderDescription() {
       $('#folderDescriptionProperty').hide();
       $('#folderDescriptionPropertyRendered').show();
       $('#editFolderDescriptionButton').show();
@@ -684,7 +685,7 @@ define((require, exports, module) => {
       $('#saveFolderDescriptionButton').hide();
     }
 
-    static _saveFolderDescription() {
+    _saveFolderDescription() {
       TSCORE.Meta.loadFolderMetaDataPromise(TSCORE.currentPath).then((metaData) => {
         let folderDescription = $('#folderDescriptionProperty').val();
         metaData.description = folderDescription;
@@ -697,7 +698,7 @@ define((require, exports, module) => {
       });
     }
 
-    static _toggleFolderProperties() {
+    _toggleFolderProperties() {
       if (folderPropertiesOpened) {
         $('#folderPropertiesArea').hide();
         $('#toggleFolderProperitesButton').removeClass('buttonToggled');
@@ -708,7 +709,7 @@ define((require, exports, module) => {
       folderPropertiesOpened = !folderPropertiesOpened;
     }
 
-    static createLocation() {
+    createLocation() {
       var locationPath = $('#folderLocation').val();
       TSCORE.Config.createLocation($('#connectionName').val(), locationPath, $('#locationPerspective').val());
       // Enable the UI behavior of a not empty location list
@@ -719,7 +720,7 @@ define((require, exports, module) => {
       this.initLocations();
     }
 
-    static editLocation() {
+    editLocation() {
       let $connectionName2 = $('#connectionName2');
       let $folderLocation2 = $('#folderLocation2');
       TSCORE.Config.editLocation($connectionName2.attr('oldName'), $connectionName2.val(), $folderLocation2.val(), $('#locationPerspective2').val());
@@ -730,11 +731,11 @@ define((require, exports, module) => {
       this.initLocations();
     }
 
-    static _selectLocalDirectory() {
+    _selectLocalDirectory() {
       TSCORE.IO.selectDirectory();
     }
 
-    static _showLocationEditDialog(name, path) {
+    _showLocationEditDialog(name, path) {
       require(['text!templates/LocationEditDialog.html'], (uiTPL) => {
         let $dialogLocationEdit = $('#dialogLocationEdit');
 
@@ -832,7 +833,7 @@ define((require, exports, module) => {
       });
     }
 
-    static _showLocationCreateDialog() {
+    _showLocationCreateDialog() {
       require(['text!templates/LocationCreateDialog.html'], (uiTPL) => {
         let $dialogCreateFolderConnection = $('#dialogCreateFolderConnection');
 
@@ -918,7 +919,7 @@ define((require, exports, module) => {
       });
     }
 
-    static _createDirectory() {
+    _createDirectory() {
       let dirPath = $('#createNewDirectoryButton').attr('path') + TSCORE.dirSeparator + $('#newDirectoryName').val();
       TSCORE.IO.createDirectoryPromise(dirPath).then(() => {
         TSCORE.showSuccessDialog("Directory created successfully.");
@@ -933,7 +934,7 @@ define((require, exports, module) => {
       });
     }
 
-    static showCreateDirectoryDialog(dirPath) {
+    showCreateDirectoryDialog(dirPath) {
       require(['text!templates/DirectoryCreateDialog.html'], (uiTPL) => {
         if ($('#dialogDirectoryCreate').length < 1) {
           let uiTemplate = Handlebars.compile(uiTPL);
@@ -972,7 +973,7 @@ define((require, exports, module) => {
       });
     }
 
-    static _showRenameDirectoryDialog(dirPath) {
+    _showRenameDirectoryDialog(dirPath) {
       require(['text!templates/DirectoryRenameDialog.html'], (uiTPL) => {
         if ($('#dialogDirectoryRename').length < 1) {
           let uiTemplate = Handlebars.compile(uiTPL);
@@ -1021,12 +1022,12 @@ define((require, exports, module) => {
       });
     }
 
-    static isDefaultLocation(path) {
+    isDefaultLocation(path) {
 
       return (TSCORE.Config.getDefaultLocation() === path);
     }
 
-    static deleteLocation(name) {
+    deleteLocation(name) {
       console.log('Deleting folder connection..');
       TSCORE.Config.deleteLocation(name);
       //Opens the first location in the settings after deleting a location  
@@ -1043,7 +1044,7 @@ define((require, exports, module) => {
       this.initLocations();
     }
 
-    static closeCurrentLocation() {
+    closeCurrentLocation() {
       console.log('Closing location..');
       $('#locationName').text($.i18n.t('ns.common:chooseLocation')).attr('title', '');
       $('#locationContent').children().remove();
@@ -1055,7 +1056,7 @@ define((require, exports, module) => {
       TSCORE.PerspectiveManager.hideAllPerspectives();
     }
 
-    static showDeleteFolderConnectionDialog() {
+    showDeleteFolderConnectionDialog() {
       TSCORE.showConfirmDialog($.i18n.t('ns.dialogs:deleteLocationTitleAlert'), $.i18n.t('ns.dialogs:deleteLocationContentAlert', {
         locationName: $('#connectionName2').attr('oldName')
       }), () => {
@@ -1064,13 +1065,13 @@ define((require, exports, module) => {
       });
     }
 
-    static initLocations() {
+    initLocations() {
       console.log('Creating location menu...');
       let $locationsList = $('#locationsList');
       $locationsList.children().remove();
 
       TSCORE.Config.Settings.tagspacesList.forEach((element) => {
-        if (isDefaultLocation(element.path)) {
+        if (this.isDefaultLocation(element.path)) {
           element.isDefault = true;
         } else {
           element.isDefault = false;
