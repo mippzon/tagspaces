@@ -1,23 +1,23 @@
-/* Copyright (c) 2012-2017 The TagSpaces Authors. All rights reserved.
+/* Copyright (c) 2012-present The TagSpaces Authors. All rights reserved.
  * Use of this source code is governed by a AGPL3 license that
  * can be found in the LICENSE file. */
 
 /* global define, Handlebars, isCordova  */
-define(function(require, exports, module) {
+define((require, exports, module) => {
   'use strict';
 
   console.log('Loading directories.ui.js ...');
 
-  var TSCORE = require('tscore');
-  var tsExtManager = require('tsextmanager');
+  const TSCORE = require('tscore');
+  const tsExtManager = require('tsextmanager');
 
-  var homeFolderTitle = 'Home';
-  var directoryHistory = [];
-  var metaTagGroupsHistory = null;
-  var dir4ContextMenu = null;
-  var folderPropertiesOpened = false;
+  const homeFolderTitle = 'Home';
+  let directoryHistory = [];
+  let metaTagGroupsHistory = null;
+  let dir4ContextMenu = null;
+  let folderPropertiesOpened = false;
 
-  var alternativeDirectoryNavigatorTmpl = Handlebars.compile(
+  let alternativeDirectoryNavigatorTmpl = Handlebars.compile(
     '{{#each dirHistory}}' +
     '<div class="btn-group">' +
     '  <button class="btn btn-link dropdown-toggle" data-path="{{path}}"  data-menu="{{@index}}">' +
@@ -51,7 +51,7 @@ define(function(require, exports, module) {
     ''
   );
 
-  var mainDirectoryNavigatorTmpl = Handlebars.compile(
+  let mainDirectoryNavigatorTmpl = Handlebars.compile(
     '<div>{{#each dirHistory}}' +
     '  <div class="accordion-group disableTextSelection">' +
     '    <div class="accordion-heading btn-group flexLayout" data-path="{{path}}">' +
@@ -86,7 +86,7 @@ define(function(require, exports, module) {
     '{{/each}}</div>'
   );
 
-  var locationChooserTmpl = Handlebars.compile(
+  let locationChooserTmpl = Handlebars.compile(
     '<li class="dropdown-header"><button class="close">&times;</button></li>' +
     '<li class="flexLayout">' +
     '  <button style="text-align: left;" class="btn btn-link flexMaxWidth" id="createNewLocation">' +
@@ -111,999 +111,995 @@ define(function(require, exports, module) {
     '{{/each}}'
   );
 
-  function openLocation(path) {
-    var originalPath = path;
-    console.log('Opening location in : ' + path);
+  class TSDirectoriesUI {
 
-    TSCORE.currentLocationObject = TSCORE.Config.getLocation(path);
+    static openLocation(path) {
+      let originalPath = path;
+      console.log('Opening location in : ' + path);
 
-    // Add current application path to the relative path of the location in portable desktop mode
-    if (isElectron && __dirname && path.indexOf(".") === 0) {
-      if (path.indexOf("..") === 0) {
-        path = pathUtils.normalize(pathUtils.dirname(pathUtils.dirname(__dirname)) + TSCORE.dirSeparator + path);
-      } else {
-        path = pathUtils.normalize(pathUtils.dirname(pathUtils.dirname(__dirname)) + path.substring(1, path.length));
-      }
-    }
+      TSCORE.currentLocationObject = TSCORE.Config.getLocation(path);
 
-    if (TSCORE.currentLocationObject !== undefined) {
-      document.title = TSCORE.currentLocationObject.name + ' | ' + TSCORE.Config.getAppFullName();
-      $('#locationName').removeAttr("data-i18n");
-      $('#locationName').text(TSCORE.currentLocationObject.name).attr('title', path);
-      // Handle open default perspective for a location
-      var defaultPerspective = TSCORE.currentLocationObject.perspective;
-      var activatedPerspectives = TSCORE.Config.getActivatedPerspectives();
-
-      // Checking if specified perspective available
-      var perspectiveFound;
-      activatedPerspectives.forEach(function(perspective) {
-        if (perspective.id === defaultPerspective) {
-          perspectiveFound = true;
-        }
-      });
-
-      if (perspectiveFound) {
-        TSCORE.PerspectiveManager.changePerspective(defaultPerspective);
-      } else if (activatedPerspectives.length > 0) {
-        TSCORE.PerspectiveManager.changePerspective(activatedPerspectives[0].id);
-      }
-
-      // Saving the last opened location path in the settings
-      TSCORE.Config.setLastOpenedLocation(originalPath);
-
-      if ($('#defaultLocation').prop('checked') === true || $('#defaultLocationEdit').prop('checked') === true) {
-        // console.log("set default path " + path);
-        TSCORE.Config.setDefaultLocation(path);
-        $('#defaultLocation').prop('checked', false);
-        $('#defaultLocationEdit').prop('checked', false);
-      }
-
-      TSCORE.Config.saveSettings();
-    }
-    // Clear search query
-    TSCORE.clearSearchFilter();
-    // Clears the directory history
-    directoryHistory = [];
-    navigateToDirectory(path);
-    if (TSCORE.Config.getShowTagAreaOnStartup()) {
-      TSCORE.showTagsPanel();
-    } else {
-      TSCORE.showLocationsPanel();
-    }
-  }
-
-  function getDirHistoryItem(path) {
-    for (var i = 0; i < directoryHistory.length; i++) {
-      if (directoryHistory[i].path === path) {
-        return directoryHistory[i];
-      }
-    }
-  }
-
-  function loadFolderMetaData(path, element) {
-    var historyItem = getDirHistoryItem(path);
-    TSCORE.Meta.loadFolderMetaDataPromise(path).then(function(metaData) {
-      historyItem.metaData = metaData;
-      if (historyItem.metaData.perspectives) {
-        TSCORE.PerspectiveManager.changePerspective(historyItem.metaData.perspectives);
-      }
-      generateFolderTags(metaData.tags, element);
-      loadMetaTagGroups(historyItem.metaData);
-    }).catch(function(err) {
-      console.log("loadFolderMetaData: " + err);
-      generateFolderTags(null, element);
-    });
-  }
-
-  function loadMetaTagGroups(metaData) {
-    //Load tagGroups only from location folder
-    if (TSCORE.Config.getLastOpenedLocation().indexOf(TSCORE.currentPath) >= 0) {
-      if (metaTagGroupsHistory) {
-        metaTagGroupsHistory.forEach(function(value) {
-          TSCORE.Config.deleteTagGroup(value);
-        });
-      }
-      metaTagGroupsHistory = metaData.tagGroups;
-      if (metaTagGroupsHistory) {
-        metaData.tagGroups.forEach(function(value) {
-          TSCORE.Config.addTagGroup(value);
-        });
-      }
-      TSCORE.generateTagGroups(metaData.tagGroups);
-    }
-  }
-
-  function generateFolderTags(tags, $directoryTagsArea) {
-    if ($directoryTagsArea) {
-      $directoryTagsArea.empty();
-    }
-
-    var tagString = '';
-    if (tags) {
-      tags.forEach(function(value, index) {
-        if (index === 0) {
-          tagString = value.title;
+      // Add current application path to the relative path of the location in portable desktop mode
+      if (isElectron && __dirname && path.indexOf(".") === 0) {
+        if (path.indexOf("..") === 0) {
+          path = pathUtils.normalize(pathUtils.dirname(pathUtils.dirname(__dirname)) + TSCORE.dirSeparator + path);
         } else {
-          tagString = tagString + ',' + value.title;
+          path = pathUtils.normalize(pathUtils.dirname(pathUtils.dirname(__dirname)) + path.substring(1, path.length));
         }
-      });
+      }
 
-      var genTagsBtns = TSCORE.generateTagButtons(tagString);
-      if (genTagsBtns) {
-        $directoryTagsArea.append(genTagsBtns);
+      if (TSCORE.currentLocationObject !== undefined) {
+        document.title = TSCORE.currentLocationObject.name + ' | ' + TSCORE.Config.getAppFullName();
+        $('#locationName').removeAttr("data-i18n");
+        $('#locationName').text(TSCORE.currentLocationObject.name).attr('title', path);
+        // Handle open default perspective for a location
+        let defaultPerspective = TSCORE.currentLocationObject.perspective;
+        let activatedPerspectives = TSCORE.Config.getActivatedPerspectives();
+
+        // Checking if specified perspective available
+        let perspectiveFound;
+        activatedPerspectives.forEach((perspective) => {
+          if (perspective.id === defaultPerspective) {
+            perspectiveFound = true;
+          }
+        });
+
+        if (perspectiveFound) {
+          TSCORE.PerspectiveManager.changePerspective(defaultPerspective);
+        } else if (activatedPerspectives.length > 0) {
+          TSCORE.PerspectiveManager.changePerspective(activatedPerspectives[0].id);
+        }
+
+        // Saving the last opened location path in the settings
+        TSCORE.Config.setLastOpenedLocation(originalPath);
+
+        if ($('#defaultLocation').prop('checked') === true || $('#defaultLocationEdit').prop('checked') === true) {
+          // console.log("set default path " + path);
+          TSCORE.Config.setDefaultLocation(path);
+          $('#defaultLocation').prop('checked', false);
+          $('#defaultLocationEdit').prop('checked', false);
+        }
+
+        TSCORE.Config.saveSettings();
+      }
+      // Clear search query
+      TSCORE.clearSearchFilter();
+      // Clears the directory history
+      directoryHistory = [];
+      this.navigateToDirectory(path);
+      if (TSCORE.Config.getShowTagAreaOnStartup()) {
+        TSCORE.showTagsPanel();
+      } else {
+        TSCORE.showLocationsPanel();
       }
     }
 
-    if (TSCORE.PRO && TSCORE.PRO.Directory) {
-      TSCORE.PRO.Directory.setContextMenu($directoryTagsArea);
+    static getDirHistoryItem(path) {
+      for (let i = 0; i < directoryHistory.length; i++) {
+        if (directoryHistory[i].path === path) {
+          return directoryHistory[i];
+        }
+      }
     }
-    $("#locationContent .dropDownIcon").hide();
-  }
 
-  function updateSubDirs(dirList) {
-    //console.log("Updating subdirs(TSCORE)..."+JSON.stringify(dirList));
-    var hasSubFolders = false;
-    for (var i = 0; i < directoryHistory.length; i++) {
-      if (directoryHistory[i].path === TSCORE.currentPath) {
-        directoryHistory[i].children = [];
-        for (var j = 0; j < dirList.length; j++) {
-          if (!dirList[j].isFile) {
-            if (TSCORE.Config.getShowUnixHiddenEntries() || !TSCORE.Config.getShowUnixHiddenEntries() && dirList[j].name.indexOf('.') !== 0) {
-              directoryHistory[i].children.push(dirList[j]);
-              hasSubFolders = true;
+    static _loadFolderMetaData(path, element) {
+      let historyItem = this.getDirHistoryItem(path);
+      TSCORE.Meta.loadFolderMetaDataPromise(path).then((metaData) => {
+        historyItem.metaData = metaData;
+        if (historyItem.metaData.perspectives) {
+          TSCORE.PerspectiveManager.changePerspective(historyItem.metaData.perspectives);
+        }
+        this.generateFolderTags(metaData.tags, element);
+        this._loadMetaTagGroups(historyItem.metaData);
+      }).catch((err) => {
+        console.log("_loadFolderMetaData: " + err);
+        this.generateFolderTags(null, element);
+      });
+    }
+
+    static _loadMetaTagGroups(metaData) {
+      //Load tagGroups only from location folder
+      if (TSCORE.Config.getLastOpenedLocation().indexOf(TSCORE.currentPath) >= 0) {
+        if (metaTagGroupsHistory) {
+          metaTagGroupsHistory.forEach((value) => {
+            TSCORE.Config.deleteTagGroup(value);
+          });
+        }
+        metaTagGroupsHistory = metaData.tagGroups;
+        if (metaTagGroupsHistory) {
+          metaData.tagGroups.forEach((value) => {
+            TSCORE.Config.addTagGroup(value);
+          });
+        }
+        TSCORE.generateTagGroups(metaData.tagGroups);
+      }
+    }
+
+    static generateFolderTags(tags, $directoryTagsArea) {
+      if ($directoryTagsArea) {
+        $directoryTagsArea.empty();
+      }
+
+      let tagString = '';
+      if (tags) {
+        tags.forEach((value, index) => {
+          if (index === 0) {
+            tagString = value.title;
+          } else {
+            tagString = tagString + ',' + value.title;
+          }
+        });
+
+        let genTagsBtns = TSCORE.generateTagButtons(tagString);
+        if (genTagsBtns) {
+          $directoryTagsArea.append(genTagsBtns);
+        }
+      }
+
+      if (TSCORE.PRO && TSCORE.PRO.Directory) {
+        TSCORE.PRO.Directory.setContextMenu($directoryTagsArea);
+      }
+      $("#locationContent .dropDownIcon").hide();
+    }
+
+    static updateSubDirs(dirList) {
+      //console.log("Updating subdirs(TSCORE)..."+JSON.stringify(dirList));
+      let hasSubFolders = false;
+      for (let i = 0; i < directoryHistory.length; i++) {
+        if (directoryHistory[i].path === TSCORE.currentPath) {
+          directoryHistory[i].children = [];
+          for (let j = 0; j < dirList.length; j++) {
+            if (!dirList[j].isFile) {
+              if (TSCORE.Config.getShowUnixHiddenEntries() || !TSCORE.Config.getShowUnixHiddenEntries() && dirList[j].name.indexOf('.') !== 0) {
+                directoryHistory[i].children.push(dirList[j]);
+                hasSubFolders = true;
+              }
             }
           }
+          // Sort the dirList alphabetically
+          directoryHistory[i].children.sort((a, b) => {
+            return a.name.localeCompare(b.name);
+          });
         }
-        // Sort the dirList alphabetically
-        directoryHistory[i].children.sort(function(a, b) {
-          return a.name.localeCompare(b.name);
-        });
+      }
+      this._generateDirPath();
+      generateAlternativeDirPath();
+      this._handleDirCollapsion();
+    }
+
+    static _generateAlternativeDirPath() {
+      console.log('Generating Alternative Directory Path...');
+
+      let $alternativeNavigator = $('#alternativeNavigator');
+      $alternativeNavigator.children().remove();
+
+      $alternativeNavigator.html(alternativeDirectoryNavigatorTmpl({
+        'dirHistory': directoryHistory
+      }));
+
+      $alternativeNavigator.find('.reloadCurrentDirectory').on('click', () => {
+        navigateToDirectory($(this).attr('data-path'));
+      });
+
+      $alternativeNavigator.find('.createSubdirectory').on('click', function() {
+        showCreateDirectoryDialog($(this).attr('data-path'));
+      });
+
+      $alternativeNavigator.find('.renameDirectory').on('click', function() {
+        _showRenameDirectoryDialog($(this).attr('data-path'));
+      });
+
+      $alternativeNavigator.find('.dropdown-toggle').on('contextmenu', function() {
+        TSCORE.hideAllDropDownMenus();
+        $('#dirMenu' + $(this).attr('data-menu')).css("display", "block");
+        return false;
+      });
+
+      $alternativeNavigator.find('.dropdown-toggle').on('click', function() {
+        TSCORE.hideAllDropDownMenus();
+        navigateToDirectory($(this).attr('data-path'));
+        return false;
+      });
+
+      $alternativeNavigator.find('.close').on("click", function() {
+        TSCORE.hideAllDropDownMenus();
+      });
+
+      $alternativeNavigator.find('.dirButton').on("click", function() {
+        navigateToDirectory($(this).attr('data-path'));
+      });
+
+      if ($alternativeNavigator.i18n) {
+        $alternativeNavigator.i18n();
+      }
+
+      $('#toggleFolderProperitesButton').on('click', this._toggleFolderProperties);
+
+      if (folderPropertiesOpened) {
+        $('#toggleFolderProperitesButton').addClass('buttonToggled');
+      } else {
+        $('#toggleFolderProperitesButton').removeClass('buttonToggled');
       }
     }
-    generateDirPath();
-    generateAlternativeDirPath();
-    handleDirCollapsion();
-  }
 
-  function generateAlternativeDirPath() {
-    console.log('Generating Alternative Directory Path...');
-
-    var $alternativeNavigator = $('#alternativeNavigator');
-    $alternativeNavigator.children().remove();
-
-    $alternativeNavigator.html(alternativeDirectoryNavigatorTmpl({
-      'dirHistory': directoryHistory
-    }));
-
-    $alternativeNavigator.find('.reloadCurrentDirectory').on('click', function() {
-      navigateToDirectory($(this).attr('data-path'));
-    });
-
-    $alternativeNavigator.find('.createSubdirectory').on('click', function() {
-      showCreateDirectoryDialog($(this).attr('data-path'));
-    });
-
-    $alternativeNavigator.find('.renameDirectory').on('click', function() {
-      showRenameDirectoryDialog($(this).attr('data-path'));
-    });
-
-    $alternativeNavigator.find('.dropdown-toggle').on('contextmenu', function() {
-      TSCORE.hideAllDropDownMenus();
-      $('#dirMenu' + $(this).attr('data-menu')).css("display", "block");
-      return false;
-    });
-
-    $alternativeNavigator.find('.dropdown-toggle').on('click', function() {
-      TSCORE.hideAllDropDownMenus();
-      navigateToDirectory($(this).attr('data-path'));
-      return false;
-    });
-
-    $alternativeNavigator.find('.close').on("click", function() {
-      TSCORE.hideAllDropDownMenus();
-    });
-
-    $alternativeNavigator.find('.dirButton').on("click", function() {
-      navigateToDirectory($(this).attr('data-path'));
-    });
-
-    if ($alternativeNavigator.i18n) {
-      $alternativeNavigator.i18n();
-    }
-
-    $('#toggleFolderProperitesButton').on('click', toggleFolderProperties);
-
-    if (folderPropertiesOpened) {
-      $('#toggleFolderProperitesButton').addClass('buttonToggled');
-    } else {
-      $('#toggleFolderProperitesButton').removeClass('buttonToggled');
-    }
-  }
-
-  function generateDirPath() {
-    console.log('Generating Directory Path...');
-    var $locationContent = $('#locationContent');
-    $locationContent.children().remove();
-    $locationContent.html(mainDirectoryNavigatorTmpl({
-      'dirHistory': directoryHistory,
-      'noSubfoldersFound': $.i18n.t('ns.common:noSubfoldersFound'),
-      'toggleDirectory': $.i18n.t('ns.common:toggleDirectory'),
-      'directoryOperations': $.i18n.t('ns.common:directoryOperations')
-    }));
-    $locationContent.find('.directoryTitle').each(function() {
-      loadFolderMetaData($(this).data('path'), $(this).parent().parent().find('.directoryTagsArea'));
-      $(this).click(function() {
-        navigateToDirectory($(this).data('path'));
-      }).droppable({
-        greedy: 'true',
-        accept: '.fileTitleButton,.fileTile,.fileTileSelector,.fileInfoArea',
-        hoverClass: 'dropOnFolder',
-        drop: function(event, ui) {
-          ui.draggable.detach();
-          var filePath = ui.draggable.attr('filepath');
-          var fileName = TSCORE.TagUtils.extractFileName(filePath);
-          var targetDir = $(this).data('path');
-          console.log('Moving file: ' + filePath + ' to ' + targetDir);
-          var newFilePath = targetDir + TSCORE.dirSeparator + fileName;
-          TSCORE.IO.renameFilePromise(filePath, newFilePath).then(function(success) {
-            TSCORE.hideWaitingDialog();
-            TSCORE.IOUtils.renameFileSuccess(filePath, newFilePath);
-          }, function(err) {
-            TSCORE.hideWaitingDialog();
-            TSCORE.showAlertDialog(err);
-          });
-          $(ui.helper).remove();
-        }
-      });
-    });
-    $locationContent.find('.dirButton').each(function() {
-      $(this).click(function() {
-        navigateToDirectory($(this).data('path'));
-      }).droppable({
-        greedy: 'true',
-        accept: '.fileTitleButton,.fileTile,.fileTileSelector,.fileInfoArea',
-        hoverClass: 'dropOnFolder',
-        drop: function(event, ui) {
-          ui.draggable.detach();
-          // Fixing issue with dropping on stacked/overlapped directories
-          if ($(this).parent().parent().parent().hasClass('in')) {
-            var filePath = ui.draggable.attr('filepath');
-            var fileName = TSCORE.TagUtils.extractFileName(filePath);
-            var targetDir = $(this).data('path');
+    static _generateDirPath() {
+      console.log('Generating Directory Path...');
+      let $locationContent = $('#locationContent');
+      $locationContent.children().remove();
+      $locationContent.html(mainDirectoryNavigatorTmpl({
+        'dirHistory': directoryHistory,
+        'noSubfoldersFound': $.i18n.t('ns.common:noSubfoldersFound'),
+        'toggleDirectory': $.i18n.t('ns.common:toggleDirectory'),
+        'directoryOperations': $.i18n.t('ns.common:directoryOperations')
+      }));
+      $locationContent.find('.directoryTitle').each(() => {
+        this._loadFolderMetaData($(this).data('path'), $(this).parent().parent().find('.directoryTagsArea'));
+        $(this).click(() => {
+          navigateToDirectory($(this).data('path'));
+        }).droppable({
+          greedy: 'true',
+          accept: '.fileTitleButton,.fileTile,.fileTileSelector,.fileInfoArea',
+          hoverClass: 'dropOnFolder',
+          drop: (event, ui) => {
+            ui.draggable.detach();
+            let filePath = ui.draggable.attr('filepath');
+            let fileName = TSCORE.TagUtils.extractFileName(filePath);
+            let targetDir = $(this).data('path');
             console.log('Moving file: ' + filePath + ' to ' + targetDir);
-            var newFilePath = targetDir + TSCORE.dirSeparator + fileName;
-            TSCORE.IO.renameFilePromise(filePath, newFilePath).then(function(success) {
+            let newFilePath = targetDir + TSCORE.dirSeparator + fileName;
+            TSCORE.IO.renameFilePromise(filePath, newFilePath).then((success) => {
               TSCORE.hideWaitingDialog();
               TSCORE.IOUtils.renameFileSuccess(filePath, newFilePath);
-            }, function(err) {
+            }, (err) => {
               TSCORE.hideWaitingDialog();
               TSCORE.showAlertDialog(err);
             });
             $(ui.helper).remove();
           }
-        }
-      });
-    });
-  }
-
-  function handleDirCollapsion() {
-    $('#locationContent').find('.accordion-heading').each(function() {
-      var key = $(this).data('path');
-      console.log('Entered Header for: ' + key);
-      if (getDirectoryCollapsed(key)) {
-        $(this).find('i').removeClass('fa-folder-open');
-        $(this).find('i').addClass('fa-folder');
-        $(this).next().removeClass('in');
-        $(this).next().addClass('out');
-      } else {
-        $(this).find('i').removeClass('fa-folder');
-        $(this).find('i').addClass('fa-folder-open');
-        $(this).next().removeClass('out');
-        $(this).next().addClass('in');
-      }
-    });
-  }
-
-  function getDirectoryCollapsed(directoryPath) {
-    for (var i = 0; i < directoryHistory.length; i++) {
-      if (directoryHistory[i].path === directoryPath) {
-        return directoryHistory[i].collapsed;
-      }
-    }
-  }
-
-  function setDirectoryCollapse(directoryPath, collapsed) {
-    for (var i = 0; i < directoryHistory.length; i++) {
-      if (directoryHistory[i].path === directoryPath) {
-        directoryHistory[i].collapsed = collapsed;
-      }
-    }
-  }
-
-  function navigateToDirectory(directoryPath) {
-    console.log('Navigating to directory: ' + directoryPath);
-    var indexOfDots = directoryPath.indexOf("/..");
-    if (indexOfDots === (directoryPath.length - 3)) {
-      directoryPath = TSCORE.TagUtils.extractParentDirectoryPath(directoryPath.substring(0, indexOfDots));
-    }
-
-    // Clearing search results on directory change
-    TSCORE.clearSearchFilter();
-    // Cleaning the directory path from \\ \ and / 
-    if (directoryPath.lastIndexOf('/') + 1 === directoryPath.length || directoryPath.lastIndexOf('\\') + 1 === directoryPath.length) {
-      directoryPath = directoryPath.substring(0, directoryPath.length - 1);
-    }
-    if (directoryPath.lastIndexOf('\\\\') + 1 === directoryPath.length) {
-      directoryPath = directoryPath.substring(0, directoryPath.length - 2);
-    }
-    var directoryFoundOn = -1;
-    for (var i = 0; i < directoryHistory.length; i++) {
-      if (directoryHistory[i].path === directoryPath) {
-        directoryHistory[i].collapsed = false;
-        directoryFoundOn = i;
-      } else {
-        directoryHistory[i].collapsed = true;
-      }
-    }
-    // Removes the history only if it is a completely new path
-    if (directoryFoundOn >= 0) {
-      var diff1 = directoryHistory.length - (directoryFoundOn + 1);
-      if (diff1 > 0) {
-        directoryHistory.splice(directoryFoundOn + 1, diff1);
-      }
-    }
-    // If directory path not in history then add it to the history
-    if (directoryFoundOn < 0) {
-      // var parentLocation = directoryPath.substring(0, directoryPath.lastIndexOf(TSCORE.dirSeparator));
-      var parentLocation = TSCORE.TagUtils.extractParentDirectoryPath(directoryPath);
-      var parentFound = -1;
-      for (var j = 0; j < directoryHistory.length; j++) {
-        if (directoryHistory[j].path === parentLocation) {
-          parentFound = j;
-        }
-      }
-      if (parentFound >= 0) {
-        var diff2 = directoryHistory.length - (parentFound + 1);
-        if (diff2 > 0) {
-          directoryHistory.splice(parentFound + 1, diff2);
-        }
-      }
-      var locationTitle = directoryPath.substring(directoryPath.lastIndexOf(TSCORE.dirSeparator) + 1, directoryPath.length);
-      //ios workarround for empty directory title
-      if (isCordovaiOS && locationTitle.length === 0) {
-        locationTitle = homeFolderTitle;
-      }
-      directoryHistory.push({
-        'name': locationTitle,
-        'path': directoryPath,
-        'collapsed': false
-      });
-    }
-    console.log('Dir History: ' + JSON.stringify(directoryHistory));
-    TSCORE.currentPath = directoryPath;
-
-    initFolderProperties();
-
-    TSCORE.Meta.getDirectoryMetaInformation().then(function(dirList) {
-      TSCORE.metaFileList = dirList;
-      listDirectory(directoryPath);
-    }).catch(function(error) {
-      console.log("Error getting meta information " + error);
-      TSCORE.metaFileList = [];
-      listDirectory(directoryPath);
-    });
-  }
-
-  function listDirectory(dirPath) {
-    TSCORE.showLoadingAnimation();
-    //TSCORE.PerspectiveManager.removeAllFiles();
-    TSCORE.IO.listDirectoryPromise(dirPath).then(function(entries) {
-      TSCORE.PerspectiveManager.updateFileBrowserData(entries);
-      TSCORE.updateSubDirs(entries)
-      TSCORE.hideLoadingAnimation();
-      console.log("Listing: " + dirPath + " done!");
-
-      // TODO enable after adding switch in the settings, disabling recursion does not work on windows
-      // Disable watching on file operations with many fiels (copy, delete, rename, move)
-      if (TSCORE.IO.watchDirectory && TSCORE.Config.getWatchCurrentDirectory()) {
-        TSCORE.IO.watchDirectory(dirPath, function() {
-          listDirectory(TSCORE.currentPath);
         });
-      }
-    }).catch(function(err) {
-      // Normalazing the paths
-      var dir1 = TSCORE.TagUtils.cleanTrailingDirSeparator(TSCORE.currentLocationObject.path);
-      var dir2 = TSCORE.TagUtils.cleanTrailingDirSeparator(dirPath);
-      // Close the current location if the its path could not be opened
-      if (dir1 === dir2) {
-        TSCORE.showAlertDialog($.i18n.t('ns.dialogs:errorOpeningLocationAlert'));
-        TSCORE.closeCurrentLocation();
-      } else {
-        TSCORE.showAlertDialog($.i18n.t('ns.dialogs:errorOpeningPathAlert'));
-      }      
-      console.log("Error listing directory " + dirPath + " - " + err);
-    });
-
-    if (TSCORE.PRO && TSCORE.Config.getEnableMetaData()) {
-      TSCORE.Meta.createMetaFolderPromise(dirPath);
-    }
-  }
-
-  function initUI() {
-    // Context Menus
-    $('body').on('contextmenu click', '.directoryActions', function() {
-      TSCORE.hideAllDropDownMenus();
-      dir4ContextMenu = $(this).data('path');
-      TSCORE.showContextMenu('#directoryMenu', $(this));
-      return false;
-    });
-
-    $('#directoryMenuReloadDirectory').on('click', function() {
-      navigateToDirectory(dir4ContextMenu);
-    });
-
-    $('#directoryMenuCreateDirectory').on('click', function() {
-      showCreateDirectoryDialog(dir4ContextMenu);
-    });
-
-    $('#directoryMenuRenameDirectory').on('click', function() {
-      showRenameDirectoryDialog(dir4ContextMenu);
-    });
-
-    $('#directoryMenuDeleteDirectory').on('click', function() {
-      var dlgConfirmMsgId = 'ns.dialogs:deleteDirectoryContentConfirm';
-      if (TSCORE.Config.getUseTrashCan()) {
-        dlgConfirmMsgId = 'ns.pro:trashDirectoryContentConfirm';
-      }
-      TSCORE.showConfirmDialog($.i18n.t('ns.dialogs:deleteDirectoryTitleConfirm'), $.i18n.t(dlgConfirmMsgId, {
-        dirPath: dir4ContextMenu
-      }), function() {
-        TSCORE.IO.deleteDirectoryPromise(dir4ContextMenu).then(function() {
-            TSCORE.showSuccessDialog("Directory deleted successfully.");
-            TSCORE.navigateToDirectory(TSCORE.TagUtils.extractParentDirectoryPath(dir4ContextMenu));
-            TSCORE.hideLoadingAnimation();
-          },
-          function(error) {
-            TSCORE.hideLoadingAnimation();
-            console.error("Deleting directory " + dir4ContextMenu + " failed " + error);
-            TSCORE.showAlertDialog($.i18n.t('ns.dialogs:errorDeletingDirectoryAlert'));
-            TSCORE.hideLoadingAnimation();
+      });
+      $locationContent.find('.dirButton').each(() => {
+        $(this).click(() => {
+          navigateToDirectory($(this).data('path'));
+        }).droppable({
+          greedy: 'true',
+          accept: '.fileTitleButton,.fileTile,.fileTileSelector,.fileInfoArea',
+          hoverClass: 'dropOnFolder',
+          drop: (event, ui) => {
+            ui.draggable.detach();
+            // Fixing issue with dropping on stacked/overlapped directories
+            if ($(this).parent().parent().parent().hasClass('in')) {
+              let filePath = ui.draggable.attr('filepath');
+              let fileName = TSCORE.TagUtils.extractFileName(filePath);
+              let targetDir = $(this).data('path');
+              console.log('Moving file: ' + filePath + ' to ' + targetDir);
+              let newFilePath = targetDir + TSCORE.dirSeparator + fileName;
+              TSCORE.IO.renameFilePromise(filePath, newFilePath).then((success) => {
+                TSCORE.hideWaitingDialog();
+                TSCORE.IOUtils.renameFileSuccess(filePath, newFilePath);
+              }, (err) => {
+                TSCORE.hideWaitingDialog();
+                TSCORE.showAlertDialog(err);
+              });
+              $(ui.helper).remove();
+            }
           }
-        );
-      });
-    });
-
-    $('#directoryMenuOpenDirectory').on('click', function() {
-      TSCORE.IO.openDirectory(dir4ContextMenu);
-    });
-
-    $('#locationSwitch').on('click', function() {
-      TSCORE.UI.stopGettingStartedTour();
-    });
-
-    $('#editFolderDescriptionButton').on('click', editFolderDescription);
-
-    $('#cancelEditFolderDescriptionButton').on('click', cancelEditFolderDescription);
-
-    $('#saveFolderDescriptionButton').on('click', saveFolderDescription);
-
-  }
-
-  function saveFolderTags(event) {
-    var newTags = $(this).val();
-    console.log("Tags: " + newTags);
-    TSCORE.Meta.loadFolderMetaDataPromise(TSCORE.currentPath).then(function(metaData) {
-      newTags = newTags.split(",");
-      metaData.tags = TSCORE.PRO.Directory.generateTags(newTags);
-      TSCORE.PRO.Directory.saveMetaData(metaData);
-    }).catch(function(err) {
-      console.warn("Error getting folder metadata, saving folder tags failed.");
-    });
-  }
-
-  function initFolderProperties() {
-    $('#folderPathProperty').val(TSCORE.currentPath);
-
-    $('#folderTagsProperty').off();
-    $("#folderTagsProperty").val("");
-    $('#folderTagsProperty').select2('data', null);
-
-    cancelEditFolderDescription();
-    $('#folderDescriptionPropertyRendered').empty();
-    $('#folderDescriptionPropertyRendered').css("height", "0");
-    $('#folderDescriptionPropertyRendered').css("padding", "0");
-    $('#folderDescriptionProperty').val("");
-    TSCORE.Meta.loadFolderMetaDataPromise(TSCORE.currentPath).then(function(metaData) {
-      var tags = '';
-      if (metaData.tags && metaData.tags.length > 0) {
-        metaData.tags.forEach(function(tag) {
-          tags = tags + "," + tag.title;
         });
-        tags = tags.substring(1, tags.length);
-      }
-
-      $("#folderTagsProperty").val(tags);
-      $('#folderTagsProperty').select2({
-        multiple: true,
-        tags: TSCORE.Config.getAllTags(),
-        tokenSeparators: [',', ' '],
-        minimumInputLength: 1,
-        selectOnBlur: true,
-        formatSelectionCssClass: function(tag, container) {
-          var style = TSCORE.TagsUI.generateTagStyle(TSCORE.Config.findTag(tag.text));
-          if (style) {
-            $(container).parent().attr("style", style);
-          }
-        }
       });
-
-      if (TSCORE.PRO && TSCORE.Config.getEnableMetaData()) { // TSCORE.Config.getWriteMetaToSidecarFile()
-        $('#folderTagsProperty').on('change', saveFolderTags);
-      } else {
-        $('#folderTagsProperty').attr('disabled', 'disabled');
-        // $('.select2-search-choice').css('padding-left', '4px !important');
-      }
-
-      if (metaData.description && metaData.description.length) {
-        $('#folderDescriptionPropertyRendered').css("height", "200px");
-        $('#folderDescriptionPropertyRendered').css("padding", "4px");
-        TSCORE.Utils.setMarkDownContent($('#folderDescriptionPropertyRendered'), metaData.description);
-        $('#folderDescriptionProperty').val(metaData.description);
-      }
-    }).catch(function(err) {
-      console.warn("Error getting folder metadata.");
-    });
-  }
-
-  // TODO handle the case: changing to next file/close while in edit mode
-  function editFolderDescription() {
-    if (TSCORE.PRO) {
-      if (TSCORE.Config.getEnableMetaData()) {
-        $('#folderDescriptionProperty').show();
-        $('#folderDescriptionProperty').css("height", "200px");
-        $('#folderDescriptionProperty').focus();
-        $('#folderDescriptionPropertyRendered').hide();
-        $('#editFolderDescriptionButton').hide();
-        $('#cancelEditFolderDescriptionButton').show();
-        $('#saveFolderDescriptionButton').show();
-      } else {
-        TSCORE.UI.showAlertDialog("In order to add or edit a description, you have to enable the use of hidden folders in the settings.");
-      }
-    } else {
-      TSCORE.UI.showAlertDialog("Editing the folder description is possible with the TagSpaces PRO");
     }
-  }
 
-  function cancelEditFolderDescription() {
-    $('#folderDescriptionProperty').hide();
-    $('#folderDescriptionPropertyRendered').show();
-    $('#editFolderDescriptionButton').show();
-    $('#cancelEditFolderDescriptionButton').hide();
-    $('#saveFolderDescriptionButton').hide();
-  }
-
-  function saveFolderDescription() {
-    TSCORE.Meta.loadFolderMetaDataPromise(TSCORE.currentPath).then(function(metaData) {
-      var folderDescription = $('#folderDescriptionProperty').val();
-      metaData.description = folderDescription;
-      TSCORE.PRO.Directory.saveMetaData(metaData);
-      cancelEditFolderDescription();
-      TSCORE.Utils.setMarkDownContent($('#folderDescriptionPropertyRendered'), folderDescription);
-      $('#folderDescriptionPropertyRendered').css("height", "200px");
-    }).catch(function(err) {
-      console.warn("Error getting folder metadata.");
-    });
-  }
-
-  function toggleFolderProperties() {
-    if (folderPropertiesOpened) {
-      $('#folderPropertiesArea').hide();
-      $('#toggleFolderProperitesButton').removeClass('buttonToggled');
-    } else {
-      $('#folderPropertiesArea').show();
-      $('#toggleFolderProperitesButton').addClass('buttonToggled');
-    }
-    folderPropertiesOpened = !folderPropertiesOpened;
-  }
-
-  function createLocation() {
-    var locationPath = $('#folderLocation').val();
-    TSCORE.Config.createLocation($('#connectionName').val(), locationPath, $('#locationPerspective').val());
-    // Enable the UI behavior of a not empty location list
-    $('#createNewLocation').attr('title', $.i18n.t('ns.common:connectNewLocationTooltip'));
-    $('#locationName').prop('disabled', false);
-    $('#selectLocation').prop('disabled', false);
-    openLocation(locationPath);
-    initLocations();
-  }
-
-  function editLocation() {
-    var $connectionName2 = $('#connectionName2');
-    var $folderLocation2 = $('#folderLocation2');
-    TSCORE.Config.editLocation($connectionName2.attr('oldName'), $connectionName2.val(), $folderLocation2.val(), $('#locationPerspective2').val());
-    if ($('#defaultLocationEdit').prop('checked') === false) {
-      TSCORE.Config.setDefaultLocation(TSCORE.Config.Settings.tagspacesList[0].path);
-    }
-    openLocation($folderLocation2.val());
-    initLocations();
-  }
-
-  function selectLocalDirectory() {
-    TSCORE.IO.selectDirectory();
-  }
-
-  function showLocationEditDialog(name, path) {
-    require(['text!templates/LocationEditDialog.html'], function(uiTPL) {
-      var $dialogLocationEdit = $('#dialogLocationEdit');
-
-      // Check if dialog already created
-      if ($dialogLocationEdit.length < 1) {
-        var uiTemplate = Handlebars.compile(uiTPL);
-        $('body').append(uiTemplate());
-
-        $('#formLocationEdit').submit(function(e) {
-          e.preventDefault();
-        });
-
-        if (isWeb) {
-          $('#selectLocalDirectory2').attr('style', 'visibility: hidden');
+    static _handleDirCollapsion() {
+      $('#locationContent').find('.accordion-heading').each(() => {
+        let key = $(this).data('path');
+        console.log('Entered Header for: ' + key);
+        if (getDirectoryCollapsed(key)) {
+          $(this).find('i').removeClass('fa-folder-open');
+          $(this).find('i').addClass('fa-folder');
+          $(this).next().removeClass('in');
+          $(this).next().addClass('out');
         } else {
-          $('#selectLocalDirectory2').on('click', function(e) {
-            e.preventDefault();
-            selectLocalDirectory();
+          $(this).find('i').removeClass('fa-folder');
+          $(this).find('i').addClass('fa-folder-open');
+          $(this).next().removeClass('out');
+          $(this).next().addClass('in');
+        }
+      });
+    }
+
+    static _getDirectoryCollapsed(directoryPath) {
+      for (let i = 0; i < directoryHistory.length; i++) {
+        if (directoryHistory[i].path === directoryPath) {
+          return directoryHistory[i].collapsed;
+        }
+      }
+    }
+
+    static _setDirectoryCollapse(directoryPath, collapsed) {
+      for (let i = 0; i < directoryHistory.length; i++) {
+        if (directoryHistory[i].path === directoryPath) {
+          directoryHistory[i].collapsed = collapsed;
+        }
+      }
+    }
+
+    static navigateToDirectory(directoryPath) {
+      console.log('Navigating to directory: ' + directoryPath);
+      let indexOfDots = directoryPath.indexOf("/..");
+      if (indexOfDots === (directoryPath.length - 3)) {
+        directoryPath = TSCORE.TagUtils.extractParentDirectoryPath(directoryPath.substring(0, indexOfDots));
+      }
+
+      // Clearing search results on directory change
+      TSCORE.clearSearchFilter();
+      // Cleaning the directory path from \\ \ and / 
+      if (directoryPath.lastIndexOf('/') + 1 === directoryPath.length || directoryPath.lastIndexOf('\\') + 1 === directoryPath.length) {
+        directoryPath = directoryPath.substring(0, directoryPath.length - 1);
+      }
+      if (directoryPath.lastIndexOf('\\\\') + 1 === directoryPath.length) {
+        directoryPath = directoryPath.substring(0, directoryPath.length - 2);
+      }
+      let directoryFoundOn = -1;
+      for (let i = 0; i < directoryHistory.length; i++) {
+        if (directoryHistory[i].path === directoryPath) {
+          directoryHistory[i].collapsed = false;
+          directoryFoundOn = i;
+        } else {
+          directoryHistory[i].collapsed = true;
+        }
+      }
+      // Removes the history only if it is a completely new path
+      if (directoryFoundOn >= 0) {
+        let diff1 = directoryHistory.length - (directoryFoundOn + 1);
+        if (diff1 > 0) {
+          directoryHistory.splice(directoryFoundOn + 1, diff1);
+        }
+      }
+      // If directory path not in history then add it to the history
+      if (directoryFoundOn < 0) {
+        // var parentLocation = directoryPath.substring(0, directoryPath.lastIndexOf(TSCORE.dirSeparator));
+        let parentLocation = TSCORE.TagUtils.extractParentDirectoryPath(directoryPath);
+        let parentFound = -1;
+        for (let j = 0; j < directoryHistory.length; j++) {
+          if (directoryHistory[j].path === parentLocation) {
+            parentFound = j;
+          }
+        }
+        if (parentFound >= 0) {
+          let diff2 = directoryHistory.length - (parentFound + 1);
+          if (diff2 > 0) {
+            directoryHistory.splice(parentFound + 1, diff2);
+          }
+        }
+        let locationTitle = directoryPath.substring(directoryPath.lastIndexOf(TSCORE.dirSeparator) + 1, directoryPath.length);
+        //ios workarround for empty directory title
+        if (isCordovaiOS && locationTitle.length === 0) {
+          locationTitle = homeFolderTitle;
+        }
+        directoryHistory.push({
+          'name': locationTitle,
+          'path': directoryPath,
+          'collapsed': false
+        });
+      }
+      console.log('Dir History: ' + JSON.stringify(directoryHistory));
+      TSCORE.currentPath = directoryPath;
+
+      this._initFolderProperties();
+
+      TSCORE.Meta.getDirectoryMetaInformation().then((dirList) => {
+        TSCORE.metaFileList = dirList;
+        this._listDirectory(directoryPath);
+      }).catch((error) => {
+        console.log("Error getting meta information " + error);
+        TSCORE.metaFileList = [];
+        this._listDirectory(directoryPath);
+      });
+    }
+
+    static _listDirectory(dirPath) {
+      TSCORE.showLoadingAnimation();
+      //TSCORE.PerspectiveManager.removeAllFiles();
+      TSCORE.IO.listDirectoryPromise(dirPath).then((entries) => {
+        TSCORE.PerspectiveManager.updateFileBrowserData(entries);
+        TSCORE.updateSubDirs(entries)
+        TSCORE.hideLoadingAnimation();
+        console.log("Listing: " + dirPath + " done!");
+
+        // TODO enable after adding switch in the settings, disabling recursion does not work on windows
+        // Disable watching on file operations with many fiels (copy, delete, rename, move)
+        if (TSCORE.IO.watchDirectory && TSCORE.Config.getWatchCurrentDirectory()) {
+          TSCORE.IO.watchDirectory(dirPath, () => {
+            this._listDirectory(TSCORE.currentPath);
           });
         }
-
-        $('#saveLocationButton').on('click', function() {
-          $('#formLocationEdit').validator('validate');
-          if ($(this).hasClass('disabled')) {
-            return false;
-          } else {
-            editLocation();
-          }
-        });
-
-        $('#deleteLocationButton').on('click', function() {
-          showDeleteFolderConnectionDialog();
-        });
-
-        $('#formLocationEdit').validator();
-        $('#formLocationEdit').on('invalid.bs.validator', function() {
-          $('#saveLocationButton').prop('disabled', true);
-        });
-        $('#formLocationEdit').on('valid.bs.validator', function() {
-          $('#saveLocationButton').prop('disabled', false);
-        });
-
-        $('#dialogLocationEdit').on('shown.bs.modal', function() {
-          $('#formLocationEdit').validator('destroy');
-          $('#formLocationEdit').validator();
-        });
-
-        $('#dialogLocationEdit').draggable({
-          handle: ".modal-header"
-        });
-
-        $('#connectionName2').change(function() {
-          $('#formLocationEdit').validator('validate');
-        });
-
-        $('#folderLocation2').change(function() {
-          $('#formLocationEdit').validator('validate');
-        });
-
-        if (isCordova) {
-          $('#folderLocation2').attr('placeholder', 'e.g.: DCIM/Camera');
-        } else if (isWeb) {
-          $('#folderLocation2').attr('placeholder', 'e.g.: /owncloud/remote.php/webdav/');
-        }
-      }
-
-      var $connectionName2 = $('#connectionName2');
-      var $folderLocation2 = $('#folderLocation2');
-      var $locationPerspective2 = $('#locationPerspective2');
-      var selectedPerspectiveId = TSCORE.Config.getLocation(path).perspective;
-
-      $locationPerspective2.children().remove();
-      TSCORE.Config.getActivatedPerspectives().forEach(function(value) {
-        var name = value.name ? value.name : value.id;
-        if (selectedPerspectiveId === value.id) {
-          $locationPerspective2.append($('<option>').attr('selected', 'selected').text(name).val(value.id));
+      }).catch((err) => {
+        // Normalazing the paths
+        let dir1 = TSCORE.TagUtils.cleanTrailingDirSeparator(TSCORE.currentLocationObject.path);
+        let dir2 = TSCORE.TagUtils.cleanTrailingDirSeparator(dirPath);
+        // Close the current location if the its path could not be opened
+        if (dir1 === dir2) {
+          TSCORE.showAlertDialog($.i18n.t('ns.dialogs:errorOpeningLocationAlert'));
+          TSCORE.closeCurrentLocation();
         } else {
-          $locationPerspective2.append($('<option>').text(name).val(value.id));
-        }
+          TSCORE.showAlertDialog($.i18n.t('ns.dialogs:errorOpeningPathAlert'));
+        }      
+        console.log("Error listing directory " + dirPath + " - " + err);
       });
 
-      $connectionName2.val(name);
-      $connectionName2.attr('oldName', name);
-      $folderLocation2.val(path);
-      $('#dialogLocationEdit').i18n();
-
-      var isDefault = isDefaultLocation(path);
-      $('#defaultLocationEdit').prop('checked', isDefault);
-
-      $('#dialogLocationEdit').modal({
-        backdrop: 'static',
-        show: true
-      });
-    });
-  }
-
-  function showLocationCreateDialog() {
-    require(['text!templates/LocationCreateDialog.html'], function(uiTPL) {
-      var $dialogCreateFolderConnection = $('#dialogCreateFolderConnection');
-
-      // Check if dialog already created
-      if ($dialogCreateFolderConnection.length < 1) {
-        var uiTemplate = Handlebars.compile(uiTPL);
-        $('body').append(uiTemplate());
-
-        $('#formLocationCreate').submit(function(e) {
-          e.preventDefault();
-        });
-
-        if (isWeb) {
-          $('#selectLocalDirectory').attr('style', 'visibility: hidden');
-        } else {
-          $('#selectLocalDirectory').on('click', function(e) {
-            e.preventDefault();
-            selectLocalDirectory();
-          });
-        }
-
-        $('#createFolderConnectionButton').on('click', function() {
-          $('#formLocationCreate').validator('validate');
-          if ($(this).hasClass('disabled')) {
-            return false;
-          } else {
-            createLocation();
-          }
-        });
-
-        $('#formLocationCreate').on('invalid.bs.validator', function() {
-          $('#createFolderConnectionButton').prop('disabled', true);
-        });
-        $('#formLocationCreate').on('valid.bs.validator', function() {
-          $('#createFolderConnectionButton').prop('disabled', false);
-        });
-
-        $('#dialogCreateFolderConnection').on('shown.bs.modal', function() {
-          $('#formLocationCreate').validator('destroy');
-          $('#formLocationCreate').validator();
-        });
-
-        $('#dialogCreateFolderConnection').draggable({
-          handle: ".modal-header"
-        });
-
-        $('#folderLocation').change(function() {
-          $('#formLocationCreate').validator('validate');
-        });
-
-        $('#connectionName').change(function() {
-          $('#formLocationCreate').validator('validate');
-        });
-
-        $('#dialogCreateFolderConnection').i18n();
-
-        if (isCordova) {
-          $('#folderLocation').attr('placeholder', 'e.g., DCIM/Camera for Photos on Android ');
-        } else if (isChrome) {
-          $('#folderLocation').attr('placeholder', 'e.g., /home/chronos/user/Downloads/ for Chrome OS Downloads');
-        } else if (isWeb) {
-          $('#folderLocation').attr('placeholder', 'e.g., /owncloud/remote.php/webdav/');
-        }
+      if (TSCORE.PRO && TSCORE.Config.getEnableMetaData()) {
+        TSCORE.Meta.createMetaFolderPromise(dirPath);
       }
-
-      $('#locationPerspective').empty();
-      TSCORE.Config.getActivatedPerspectives().forEach(function(value) {
-        var name = value.name ? value.name : value.id;
-        $('#locationPerspective').append($('<option>').text(name).val(value.id));
-      });
-
-      $('#connectionName').val('');
-      $('#folderLocation').val('');
-
-      var enableDefaultlocation = (TSCORE.Config.getDefaultLocation() === "");
-      $('#defaultLocation').prop('checked', enableDefaultlocation);
-      $('#defaultLocation').prop('disabled', enableDefaultlocation);
-
-      $('#dialogCreateFolderConnection').modal({
-        backdrop: 'static',
-        show: true
-      });
-    });
-  }
-
-  function createDirectory() {
-    var dirPath = $('#createNewDirectoryButton').attr('path') + TSCORE.dirSeparator + $('#newDirectoryName').val();
-    TSCORE.IO.createDirectoryPromise(dirPath).then(function() {
-      TSCORE.showSuccessDialog("Directory created successfully.");
-      TSCORE.navigateToDirectory(dirPath);
-      TSCORE.hideWaitingDialog();
-      TSCORE.hideLoadingAnimation();
-    }, function(error) {
-      TSCORE.hideWaitingDialog();
-      TSCORE.hideLoadingAnimation();
-      console.error("Creating directory: " + dirPath + " failed with: " + error);
-      TSCORE.showAlertDialog("Creating " + dirPath + " failed!");
-    });
-  }
-
-  function showCreateDirectoryDialog(dirPath) {
-    require(['text!templates/DirectoryCreateDialog.html'], function(uiTPL) {
-      if ($('#dialogDirectoryCreate').length < 1) {
-        var uiTemplate = Handlebars.compile(uiTPL);
-        $('body').append(uiTemplate());
-        //$('#createNewDirectoryButton').off();
-        $('#createNewDirectoryButton').on('click', createDirectory);
-
-        $('#dialogDirectoryCreate').i18n();
-        $('#formDirectoryCreate').validator();
-        $('#formDirectoryCreate').submit(function(e) {
-          e.preventDefault();
-          if ($('#createNewDirectoryButton').prop('disabled') === false) {
-            $('#createNewDirectoryButton').click();
-          }
-        });
-        $('#formDirectoryCreate').on('invalid.bs.validator', function() {
-          $('#createNewDirectoryButton').prop('disabled', true);
-        });
-        $('#formDirectoryCreate').on('valid.bs.validator', function() {
-          $('#createNewDirectoryButton').prop('disabled', false);
-        });
-        $('#dialogDirectoryCreate').on('shown.bs.modal', function() {
-          $('#newDirectoryName').focus();
-        });
-        $('#dialogDirectoryCreate').draggable({
-          handle: ".modal-header"
-        });
-      }
-
-      $('#createNewDirectoryButton').attr('path', dirPath);
-      $('#newDirectoryName').val('');
-      $('#dialogDirectoryCreate').modal({
-        backdrop: 'static',
-        show: true
-      });
-    });
-  }
-
-  function showRenameDirectoryDialog(dirPath) {
-    require(['text!templates/DirectoryRenameDialog.html'], function(uiTPL) {
-      if ($('#dialogDirectoryRename').length < 1) {
-        var uiTemplate = Handlebars.compile(uiTPL);
-        $('body').append(uiTemplate());
-        $('#renameDirectoryButton').on('click', function() {
-          var dirPath = $('#renameDirectoryButton').attr('path');
-          var newDirPath = $('#directoryNewName').val();
-          TSCORE.IO.renameDirectoryPromise(dirPath, newDirPath).then(function(newDirName) {
-            TSCORE.showSuccessDialog("Directory renamed successfully.");
-            TSCORE.navigateToDirectory(newDirName);
-            TSCORE.hideLoadingAnimation();
-          }, function(err) {
-            TSCORE.hideWaitingDialog();
-            TSCORE.showAlertDialog(err);
-          });
-        });
-        $('#formDirectoryRename').submit(function(e) {
-          e.preventDefault();
-          if ($('#renameDirectoryButton').prop('disabled') === false) {
-            $('#renameDirectoryButton').click();
-          }
-        });
-        $('#formDirectoryRename').on('invalid.bs.validator', function() {
-          $('#renameDirectoryButton').prop('disabled', true);
-        });
-        $('#formDirectoryRename').on('valid.bs.validator', function() {
-          $('#renameDirectoryButton').prop('disabled', false);
-        });
-        $('#dialogDirectoryRename').i18n();
-        $('#dialogDirectoryRename').on('shown.bs.modal', function() {
-          $('#directoryNewName').focus();
-          $('#formDirectoryRename').validator('destroy');
-          $('#formDirectoryRename').validator();
-        });
-        $('#dialogDirectoryRename').draggable({
-          handle: ".modal-header"
-        });
-      }
-      $('#renameDirectoryButton').attr('path', dirPath);
-      var dirName = TSCORE.TagUtils.extractDirectoryName(dirPath);
-      $('#directoryNewName').val(dirName);
-      $('#dialogDirectoryRename').modal({
-        backdrop: 'static',
-        show: true
-      });
-    });
-  }
-
-  function isDefaultLocation(path) {
-
-    return (TSCORE.Config.getDefaultLocation() === path);
-  }
-
-  function deleteLocation(name) {
-    console.log('Deleting folder connection..');
-    TSCORE.Config.deleteLocation(name);
-    //Opens the first location in the settings after deleting a location  
-    if (TSCORE.Config.Settings.tagspacesList.length > 0) {
-      openLocation(TSCORE.Config.Settings.tagspacesList[0].path);
-      TSCORE.Config.setDefaultLocation(TSCORE.Config.Settings.tagspacesList[0].path);
-      TSCORE.Config.saveSettings();
-    } else {
-      closeCurrentLocation();
-      TSCORE.Config.setLastOpenedLocation("");
-      TSCORE.Config.setDefaultLocation("");
-      TSCORE.Config.saveSettings();
     }
-    initLocations();
-  }
 
-  function closeCurrentLocation() {
-    console.log('Closing location..');
-    $('#locationName').text($.i18n.t('ns.common:chooseLocation')).attr('title', '');
-    $('#locationContent').children().remove();
-    // Clear the footer
-    $('#statusBar').children().remove();
-    $('#statusBar').text("");
-    $('#alternativeNavigator').children().remove();
-    TSCORE.disableTopToolbar();
-    TSCORE.PerspectiveManager.hideAllPerspectives();
-  }
-
-  function showDeleteFolderConnectionDialog() {
-    TSCORE.showConfirmDialog($.i18n.t('ns.dialogs:deleteLocationTitleAlert'), $.i18n.t('ns.dialogs:deleteLocationContentAlert', {
-      locationName: $('#connectionName2').attr('oldName')
-    }), function() {
-      deleteLocation($('#connectionName2').attr('oldName'));
-      $('#dialogLocationEdit').modal('hide');
-    });
-  }
-
-  function initLocations() {
-    console.log('Creating location menu...');
-    var $locationsList = $('#locationsList');
-    $locationsList.children().remove();
-
-    TSCORE.Config.Settings.tagspacesList.forEach(function(element) {
-      if (isDefaultLocation(element.path)) {
-        element.isDefault = true;
-      } else {
-        element.isDefault = false;
-      }
-    });
-    $locationsList.html(locationChooserTmpl({
-      'locations': TSCORE.Config.Settings.tagspacesList,
-      'yourLocations': $.i18n.t('ns.common:yourLocations'),
-      'connectLocation': $.i18n.t('ns.common:connectNewLocationTooltip'),
-      'editLocationTitle': $.i18n.t('ns.common:editLocation')
-    }));
-    $locationsList.find('.openLocation').each(function() {
-      $(this).on('click', function() {
-        openLocation($(this).attr('path'));
-      });
-    });
-    $locationsList.find('.editLocation').each(function() {
-      $(this).on('click', function() {
-        console.log('Edit location clicked');
-        showLocationEditDialog($(this).attr('location'), $(this).attr('path'));
+    static initUI() {
+      // Context Menus
+      $('body').on('contextmenu click', '.directoryActions', () => {
+        TSCORE.hideAllDropDownMenus();
+        dir4ContextMenu = $(this).data('path');
+        TSCORE.showContextMenu('#directoryMenu', $(this));
         return false;
       });
-    });
-    $locationsList.find('#createNewLocation').on('click', function() {
-      showLocationCreateDialog();
-    });
+
+      $('#directoryMenuReloadDirectory').on('click', () => {
+        this.navigateToDirectory(dir4ContextMenu);
+      });
+
+      $('#directoryMenuCreateDirectory').on('click', () => {
+        this.showCreateDirectoryDialog(dir4ContextMenu);
+      });
+
+      $('#directoryMenuRenameDirectory').on('click', () => {
+        this._showRenameDirectoryDialog(dir4ContextMenu);
+      });
+
+      $('#directoryMenuDeleteDirectory').on('click', () => {
+        let dlgConfirmMsgId = 'ns.dialogs:deleteDirectoryContentConfirm';
+        if (TSCORE.Config.getUseTrashCan()) {
+          dlgConfirmMsgId = 'ns.pro:trashDirectoryContentConfirm';
+        }
+        TSCORE.showConfirmDialog($.i18n.t('ns.dialogs:deleteDirectoryTitleConfirm'), $.i18n.t(dlgConfirmMsgId, {
+          dirPath: dir4ContextMenu
+        }), () => {
+          TSCORE.IO.deleteDirectoryPromise(dir4ContextMenu).then(() => {
+              TSCORE.showSuccessDialog("Directory deleted successfully.");
+              TSCORE.navigateToDirectory(TSCORE.TagUtils.extractParentDirectoryPath(dir4ContextMenu));
+              TSCORE.hideLoadingAnimation();
+            },
+            (error) => {
+              TSCORE.hideLoadingAnimation();
+              console.error("Deleting directory " + dir4ContextMenu + " failed " + error);
+              TSCORE.showAlertDialog($.i18n.t('ns.dialogs:errorDeletingDirectoryAlert'));
+              TSCORE.hideLoadingAnimation();
+            }
+          );
+        });
+      });
+
+      $('#directoryMenuOpenDirectory').on('click', () => {
+        TSCORE.IO.openDirectory(dir4ContextMenu);
+      });
+
+      $('#locationSwitch').on('click', () => {
+        TSCORE.UI.stopGettingStartedTour();
+      });
+
+      $('#editFolderDescriptionButton').on('click', this._editFolderDescription);
+
+      $('#cancelEditFolderDescriptionButton').on('click', this._cancelEditFolderDescription);
+
+      $('#saveFolderDescriptionButton').on('click', this._saveFolderDescription);
+
+    }
+
+    static _saveFolderTags(event) {
+      let newTags = $(this).val();
+      console.log("Tags: " + newTags);
+      TSCORE.Meta.loadFolderMetaDataPromise(TSCORE.currentPath).then((metaData) => {
+        newTags = newTags.split(",");
+        metaData.tags = TSCORE.PRO.Directory.generateTags(newTags);
+        TSCORE.PRO.Directory.saveMetaData(metaData);
+      }).catch((err) => {
+        console.warn("Error getting folder metadata, saving folder tags failed.");
+      });
+    }
+
+    static _initFolderProperties() {
+      $('#folderPathProperty').val(TSCORE.currentPath);
+
+      $('#folderTagsProperty').off();
+      $("#folderTagsProperty").val("");
+      $('#folderTagsProperty').select2('data', null);
+
+      this._cancelEditFolderDescription();
+      $('#folderDescriptionPropertyRendered').empty();
+      $('#folderDescriptionPropertyRendered').css("height", "0");
+      $('#folderDescriptionPropertyRendered').css("padding", "0");
+      $('#folderDescriptionProperty').val("");
+      TSCORE.Meta.loadFolderMetaDataPromise(TSCORE.currentPath).then((metaData) => {
+        let tags = '';
+        if (metaData.tags && metaData.tags.length > 0) {
+          metaData.tags.forEach((tag) => {
+            tags = tags + "," + tag.title;
+          });
+          tags = tags.substring(1, tags.length);
+        }
+
+        $("#folderTagsProperty").val(tags);
+        $('#folderTagsProperty').select2({
+          multiple: true,
+          tags: TSCORE.Config.getAllTags(),
+          tokenSeparators: [',', ' '],
+          minimumInputLength: 1,
+          selectOnBlur: true,
+          formatSelectionCssClass: function(tag, container) {
+            let style = TSCORE.TagsUI.generateTagStyle(TSCORE.Config.findTag(tag.text));
+            if (style) {
+              $(container).parent().attr("style", style);
+            }
+          }
+        });
+
+        if (TSCORE.PRO && TSCORE.Config.getEnableMetaData()) { // TSCORE.Config.getWriteMetaToSidecarFile()
+          $('#folderTagsProperty').on('change', this._saveFolderTags);
+        } else {
+          $('#folderTagsProperty').attr('disabled', 'disabled');
+          // $('.select2-search-choice').css('padding-left', '4px !important');
+        }
+
+        if (metaData.description && metaData.description.length) {
+          $('#folderDescriptionPropertyRendered').css("height", "200px");
+          $('#folderDescriptionPropertyRendered').css("padding", "4px");
+          TSCORE.Utils.setMarkDownContent($('#folderDescriptionPropertyRendered'), metaData.description);
+          $('#folderDescriptionProperty').val(metaData.description);
+        }
+      }).catch((err) => {
+        console.warn("Error getting folder metadata.");
+      });
+    }
+
+    // TODO handle the case: changing to next file/close while in edit mode
+    static _editFolderDescription() {
+      if (TSCORE.PRO) {
+        if (TSCORE.Config.getEnableMetaData()) {
+          $('#folderDescriptionProperty').show();
+          $('#folderDescriptionProperty').css("height", "200px");
+          $('#folderDescriptionProperty').focus();
+          $('#folderDescriptionPropertyRendered').hide();
+          $('#editFolderDescriptionButton').hide();
+          $('#cancelEditFolderDescriptionButton').show();
+          $('#saveFolderDescriptionButton').show();
+        } else {
+          TSCORE.UI.showAlertDialog("In order to add or edit a description, you have to enable the use of hidden folders in the settings.");
+        }
+      } else {
+        TSCORE.UI.showAlertDialog("Editing the folder description is possible with the TagSpaces PRO");
+      }
+    }
+
+    static _cancelEditFolderDescription() {
+      $('#folderDescriptionProperty').hide();
+      $('#folderDescriptionPropertyRendered').show();
+      $('#editFolderDescriptionButton').show();
+      $('#cancelEditFolderDescriptionButton').hide();
+      $('#saveFolderDescriptionButton').hide();
+    }
+
+    static _saveFolderDescription() {
+      TSCORE.Meta.loadFolderMetaDataPromise(TSCORE.currentPath).then((metaData) => {
+        let folderDescription = $('#folderDescriptionProperty').val();
+        metaData.description = folderDescription;
+        TSCORE.PRO.Directory.saveMetaData(metaData);
+        this._cancelEditFolderDescription();
+        TSCORE.Utils.setMarkDownContent($('#folderDescriptionPropertyRendered'), folderDescription);
+        $('#folderDescriptionPropertyRendered').css("height", "200px");
+      }).catch((err) => {
+        console.warn("Error getting folder metadata.");
+      });
+    }
+
+    static _toggleFolderProperties() {
+      if (folderPropertiesOpened) {
+        $('#folderPropertiesArea').hide();
+        $('#toggleFolderProperitesButton').removeClass('buttonToggled');
+      } else {
+        $('#folderPropertiesArea').show();
+        $('#toggleFolderProperitesButton').addClass('buttonToggled');
+      }
+      folderPropertiesOpened = !folderPropertiesOpened;
+    }
+
+    static createLocation() {
+      var locationPath = $('#folderLocation').val();
+      TSCORE.Config.createLocation($('#connectionName').val(), locationPath, $('#locationPerspective').val());
+      // Enable the UI behavior of a not empty location list
+      $('#createNewLocation').attr('title', $.i18n.t('ns.common:connectNewLocationTooltip'));
+      $('#locationName').prop('disabled', false);
+      $('#selectLocation').prop('disabled', false);
+      this.openLocation(locationPath);
+      this.initLocations();
+    }
+
+    static editLocation() {
+      let $connectionName2 = $('#connectionName2');
+      let $folderLocation2 = $('#folderLocation2');
+      TSCORE.Config.editLocation($connectionName2.attr('oldName'), $connectionName2.val(), $folderLocation2.val(), $('#locationPerspective2').val());
+      if ($('#defaultLocationEdit').prop('checked') === false) {
+        TSCORE.Config.setDefaultLocation(TSCORE.Config.Settings.tagspacesList[0].path);
+      }
+      this.openLocation($folderLocation2.val());
+      this.initLocations();
+    }
+
+    static _selectLocalDirectory() {
+      TSCORE.IO.selectDirectory();
+    }
+
+    static _showLocationEditDialog(name, path) {
+      require(['text!templates/LocationEditDialog.html'], (uiTPL) => {
+        let $dialogLocationEdit = $('#dialogLocationEdit');
+
+        // Check if dialog already created
+        if ($dialogLocationEdit.length < 1) {
+          let uiTemplate = Handlebars.compile(uiTPL);
+          $('body').append(uiTemplate());
+
+          $('#formLocationEdit').submit((e) => {
+            e.preventDefault();
+          });
+
+          if (isWeb) {
+            $('#selectLocalDirectory2').attr('style', 'visibility: hidden');
+          } else {
+            $('#selectLocalDirectory2').on('click', (e) => {
+              e.preventDefault();
+              this._selectLocalDirectory();
+            });
+          }
+
+          $('#saveLocationButton').on('click', () => {
+            $('#formLocationEdit').validator('validate');
+            if ($(this).hasClass('disabled')) {
+              return false;
+            } else {
+              this.editLocation();
+            }
+          });
+
+          $('#deleteLocationButton').on('click', () => {
+            this._showDeleteFolderConnectionDialog();
+          });
+
+          $('#formLocationEdit').validator();
+          $('#formLocationEdit').on('invalid.bs.validator', () => {
+            $('#saveLocationButton').prop('disabled', true);
+          });
+          $('#formLocationEdit').on('valid.bs.validator', () => {
+            $('#saveLocationButton').prop('disabled', false);
+          });
+
+          $('#dialogLocationEdit').on('shown.bs.modal', () => {
+            $('#formLocationEdit').validator('destroy');
+            $('#formLocationEdit').validator();
+          });
+
+          $('#dialogLocationEdit').draggable({
+            handle: ".modal-header"
+          });
+
+          $('#connectionName2').change(() => {
+            $('#formLocationEdit').validator('validate');
+          });
+
+          $('#folderLocation2').change(() => {
+            $('#formLocationEdit').validator('validate');
+          });
+
+          if (isCordova) {
+            $('#folderLocation2').attr('placeholder', 'e.g.: DCIM/Camera');
+          } else if (isWeb) {
+            $('#folderLocation2').attr('placeholder', 'e.g.: /owncloud/remote.php/webdav/');
+          }
+        }
+
+        let $connectionName2 = $('#connectionName2');
+        let $folderLocation2 = $('#folderLocation2');
+        let $locationPerspective2 = $('#locationPerspective2');
+        let
+         selectedPerspectiveId = TSCORE.Config.getLocation(path).perspective;
+
+        $locationPerspective2.children().remove();
+        TSCORE.Config.getActivatedPerspectives().forEach((value) => {
+          let name = value.name ? value.name : value.id;
+          if (selectedPerspectiveId === value.id) {
+            $locationPerspective2.append($('<option>').attr('selected', 'selected').text(name).val(value.id));
+          } else {
+            $locationPerspective2.append($('<option>').text(name).val(value.id));
+          }
+        });
+
+        $connectionName2.val(name);
+        $connectionName2.attr('oldName', name);
+        $folderLocation2.val(path);
+        $('#dialogLocationEdit').i18n();
+
+        let isDefault = isDefaultLocation(path);
+        $('#defaultLocationEdit').prop('checked', isDefault);
+
+        $('#dialogLocationEdit').modal({
+          backdrop: 'static',
+          show: true
+        });
+      });
+    }
+
+    static _showLocationCreateDialog() {
+      require(['text!templates/LocationCreateDialog.html'], (uiTPL) => {
+        let $dialogCreateFolderConnection = $('#dialogCreateFolderConnection');
+
+        // Check if dialog already created
+        if ($dialogCreateFolderConnection.length < 1) {
+          let uiTemplate = Handlebars.compile(uiTPL);
+          $('body').append(uiTemplate());
+
+          $('#formLocationCreate').submit((e) => {
+            e.preventDefault();
+          });
+
+          if (isWeb) {
+            $('#_selectLocalDirectory').attr('style', 'visibility: hidden');
+          } else {
+            $('#_selectLocalDirectory').on('click', (e) => {
+              e.preventDefault();
+              this._selectLocalDirectory();
+            });
+          }
+
+          $('#createFolderConnectionButton').on('click', () => {
+            $('#formLocationCreate').validator('validate');
+            if ($(this).hasClass('disabled')) {
+              return false;
+            } else {
+              this.createLocation();
+            }
+          });
+
+          $('#formLocationCreate').on('invalid.bs.validator', () => {
+            $('#createFolderConnectionButton').prop('disabled', true);
+          });
+          $('#formLocationCreate').on('valid.bs.validator', () => {
+            $('#createFolderConnectionButton').prop('disabled', false);
+          });
+
+          $('#dialogCreateFolderConnection').on('shown.bs.modal', () => {
+            $('#formLocationCreate').validator('destroy');
+            $('#formLocationCreate').validator();
+          });
+
+          $('#dialogCreateFolderConnection').draggable({
+            handle: ".modal-header"
+          });
+
+          $('#folderLocation').change(() => {
+            $('#formLocationCreate').validator('validate');
+          });
+
+          $('#connectionName').change(() => {
+            $('#formLocationCreate').validator('validate');
+          });
+
+          $('#dialogCreateFolderConnection').i18n();
+
+          if (isCordova) {
+            $('#folderLocation').attr('placeholder', 'e.g., DCIM/Camera for Photos on Android ');
+          } else if (isChrome) {
+            $('#folderLocation').attr('placeholder', 'e.g., /home/chronos/user/Downloads/ for Chrome OS Downloads');
+          } else if (isWeb) {
+            $('#folderLocation').attr('placeholder', 'e.g., /owncloud/remote.php/webdav/');
+          }
+        }
+
+        $('#locationPerspective').empty();
+        TSCORE.Config.getActivatedPerspectives().forEach((value) => {
+          let name = value.name ? value.name : value.id;
+          $('#locationPerspective').append($('<option>').text(name).val(value.id));
+        });
+
+        $('#connectionName').val('');
+        $('#folderLocation').val('');
+
+        let enableDefaultlocation = (TSCORE.Config.getDefaultLocation() === "");
+        $('#defaultLocation').prop('checked', enableDefaultlocation);
+        $('#defaultLocation').prop('disabled', enableDefaultlocation);
+
+        $('#dialogCreateFolderConnection').modal({
+          backdrop: 'static',
+          show: true
+        });
+      });
+    }
+
+    static _createDirectory() {
+      let dirPath = $('#createNewDirectoryButton').attr('path') + TSCORE.dirSeparator + $('#newDirectoryName').val();
+      TSCORE.IO.createDirectoryPromise(dirPath).then(() => {
+        TSCORE.showSuccessDialog("Directory created successfully.");
+        TSCORE.navigateToDirectory(dirPath);
+        TSCORE.hideWaitingDialog();
+        TSCORE.hideLoadingAnimation();
+      }, (error) => {
+        TSCORE.hideWaitingDialog();
+        TSCORE.hideLoadingAnimation();
+        console.error("Creating directory: " + dirPath + " failed with: " + error);
+        TSCORE.showAlertDialog("Creating " + dirPath + " failed!");
+      });
+    }
+
+    static showCreateDirectoryDialog(dirPath) {
+      require(['text!templates/DirectoryCreateDialog.html'], (uiTPL) => {
+        if ($('#dialogDirectoryCreate').length < 1) {
+          let uiTemplate = Handlebars.compile(uiTPL);
+          $('body').append(uiTemplate());
+          //$('#createNewDirectoryButton').off();
+          $('#createNewDirectoryButton').on('click', createDirectory);
+
+          $('#dialogDirectoryCreate').i18n();
+          $('#formDirectoryCreate').validator();
+          $('#formDirectoryCreate').submit((e) => {
+            e.preventDefault();
+            if ($('#createNewDirectoryButton').prop('disabled') === false) {
+              $('#createNewDirectoryButton').click();
+            }
+          });
+          $('#formDirectoryCreate').on('invalid.bs.validator', () => {
+            $('#createNewDirectoryButton').prop('disabled', true);
+          });
+          $('#formDirectoryCreate').on('valid.bs.validator', () => {
+            $('#createNewDirectoryButton').prop('disabled', false);
+          });
+          $('#dialogDirectoryCreate').on('shown.bs.modal', () => {
+            $('#newDirectoryName').focus();
+          });
+          $('#dialogDirectoryCreate').draggable({
+            handle: ".modal-header"
+          });
+        }
+
+        $('#createNewDirectoryButton').attr('path', dirPath);
+        $('#newDirectoryName').val('');
+        $('#dialogDirectoryCreate').modal({
+          backdrop: 'static',
+          show: true
+        });
+      });
+    }
+
+    static _showRenameDirectoryDialog(dirPath) {
+      require(['text!templates/DirectoryRenameDialog.html'], (uiTPL) => {
+        if ($('#dialogDirectoryRename').length < 1) {
+          let uiTemplate = Handlebars.compile(uiTPL);
+          $('body').append(uiTemplate());
+          $('#renameDirectoryButton').on('click', () => {
+            let dirPath = $('#renameDirectoryButton').attr('path');
+            let newDirPath = $('#directoryNewName').val();
+            TSCORE.IO.renameDirectoryPromise(dirPath, newDirPath).then((newDirName) => {
+              TSCORE.showSuccessDialog("Directory renamed successfully.");
+              TSCORE.navigateToDirectory(newDirName);
+              TSCORE.hideLoadingAnimation();
+            }, (err) => {
+              TSCORE.hideWaitingDialog();
+              TSCORE.showAlertDialog(err);
+            });
+          });
+          $('#formDirectoryRename').submit((e) => {
+            e.preventDefault();
+            if ($('#renameDirectoryButton').prop('disabled') === false) {
+              $('#renameDirectoryButton').click();
+            }
+          });
+          $('#formDirectoryRename').on('invalid.bs.validator', () => {
+            $('#renameDirectoryButton').prop('disabled', true);
+          });
+          $('#formDirectoryRename').on('valid.bs.validator', () => {
+            $('#renameDirectoryButton').prop('disabled', false);
+          });
+          $('#dialogDirectoryRename').i18n();
+          $('#dialogDirectoryRename').on('shown.bs.modal', () => {
+            $('#directoryNewName').focus();
+            $('#formDirectoryRename').validator('destroy');
+            $('#formDirectoryRename').validator();
+          });
+          $('#dialogDirectoryRename').draggable({
+            handle: ".modal-header"
+          });
+        }
+        $('#renameDirectoryButton').attr('path', dirPath);
+        let dirName = TSCORE.TagUtils.extractDirectoryName(dirPath);
+        $('#directoryNewName').val(dirName);
+        $('#dialogDirectoryRename').modal({
+          backdrop: 'static',
+          show: true
+        });
+      });
+    }
+
+    static isDefaultLocation(path) {
+
+      return (TSCORE.Config.getDefaultLocation() === path);
+    }
+
+    static deleteLocation(name) {
+      console.log('Deleting folder connection..');
+      TSCORE.Config.deleteLocation(name);
+      //Opens the first location in the settings after deleting a location  
+      if (TSCORE.Config.Settings.tagspacesList.length > 0) {
+        openLocation(TSCORE.Config.Settings.tagspacesList[0].path);
+        TSCORE.Config.setDefaultLocation(TSCORE.Config.Settings.tagspacesList[0].path);
+        TSCORE.Config.saveSettings();
+      } else {
+        this.closeCurrentLocation();
+        TSCORE.Config.setLastOpenedLocation("");
+        TSCORE.Config.setDefaultLocation("");
+        TSCORE.Config.saveSettings();
+      }
+      this.initLocations();
+    }
+
+    static closeCurrentLocation() {
+      console.log('Closing location..');
+      $('#locationName').text($.i18n.t('ns.common:chooseLocation')).attr('title', '');
+      $('#locationContent').children().remove();
+      // Clear the footer
+      $('#statusBar').children().remove();
+      $('#statusBar').text("");
+      $('#alternativeNavigator').children().remove();
+      TSCORE.disableTopToolbar();
+      TSCORE.PerspectiveManager.hideAllPerspectives();
+    }
+
+    static showDeleteFolderConnectionDialog() {
+      TSCORE.showConfirmDialog($.i18n.t('ns.dialogs:deleteLocationTitleAlert'), $.i18n.t('ns.dialogs:deleteLocationContentAlert', {
+        locationName: $('#connectionName2').attr('oldName')
+      }), () => {
+        deleteLocation($('#connectionName2').attr('oldName'));
+        $('#dialogLocationEdit').modal('hide');
+      });
+    }
+
+    static initLocations() {
+      console.log('Creating location menu...');
+      let $locationsList = $('#locationsList');
+      $locationsList.children().remove();
+
+      TSCORE.Config.Settings.tagspacesList.forEach((element) => {
+        if (isDefaultLocation(element.path)) {
+          element.isDefault = true;
+        } else {
+          element.isDefault = false;
+        }
+      });
+      $locationsList.html(locationChooserTmpl({
+        'locations': TSCORE.Config.Settings.tagspacesList,
+        'yourLocations': $.i18n.t('ns.common:yourLocations'),
+        'connectLocation': $.i18n.t('ns.common:connectNewLocationTooltip'),
+        'editLocationTitle': $.i18n.t('ns.common:editLocation')
+      }));
+      $locationsList.find('.openLocation').each(() => {
+        $(this).on('click', () => {
+          openLocation($(this).attr('path'));
+        });
+      });
+      $locationsList.find('.editLocation').each(() => {
+        $(this).on('click', () => {
+          console.log('Edit location clicked');
+          showLocationEditDialog($(this).attr('location'), $(this).attr('path'));
+          return false;
+        });
+      });
+      $locationsList.find('#createNewLocation').on('click', () => {
+        this._showLocationCreateDialog();
+      });
+    }
   }
 
   // Public API definition
-  exports.openLocation = openLocation;
-  exports.closeCurrentLocation = closeCurrentLocation;
-  exports.updateSubDirs = updateSubDirs;
-  exports.initUI = initUI;
-  exports.initLocations = initLocations;
-  exports.showCreateDirectoryDialog = showCreateDirectoryDialog;
-  exports.navigateToDirectory = navigateToDirectory;
-  exports.generateFolderTags = generateFolderTags;
-  exports.getDirHistoryItem = getDirHistoryItem;
+  exports.TSDirectoriesUI = TSDirectoriesUI;
 });
