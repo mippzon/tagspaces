@@ -1,78 +1,78 @@
-/* Copyright (c) 2015-2016 The TagSpaces Authors. All rights reserved.
+/* Copyright (c) 2015-present The TagSpaces Authors. All rights reserved.
  * Use of this source code is governed by a AGPL3 license that
  * can be found in the LICENSE file. */
 
 /* global define, Handlebars*/
-define(function(require, exports, module) {
+define((require, exports, module) => {
   'use strict';
   console.log('Loading search.ui.js ...');
-  var TSCORE = require('tscore');
+  const TSCORE = require('tscore');
 
-  var initUI = function() {
+  let initUI = () => {
     // Search UI
-    $('#searchBox').keyup(function(e) {
+    $('#searchBox').keyup((e) => {
       if (e.keyCode === 13) { // Start the search on ENTER
-        startSearch();
+        this._startSearch();
       } else if (e.keyCode == 27) { // Hide search on ESC
-        cancelSearch();
+        this._cancelSearch();
       } else {
         TSCORE.Search.nextQuery = this.value;
       }
-    }).focus(function(e) {
+    }).focus((e) => {
       $("#searchOptions").hide();
     });
 
-    $('#showSearchButton').on('click', function() {
+    $('#showSearchButton').on('click', () => {
       // Showing the expanded search area
       TSCORE.showSearchArea();
     });
 
-    $('#searchButton').on("click", function(e) {
-      startSearch();
+    $('#searchButton').on("click", (e) => {
+      this._startSearch();
     });
 
-    $('#startSearchButton').on("click", function(e) {
+    $('#startSearchButton').on("click", (e) => {
       e.preventDefault();
-      updateQuery();
-      startSearch();
+      this._updateQuery();
+      this._startSearch();
     });
 
-    $('#showSearchOptionsButton').on("click", function() {
-      showSearchOptions();
+    $('#showSearchOptionsButton').on("click", () => {
+      this._showSearchOptions();
     });
 
-    $('#searchOptions').on('click', '.close', function() {
+    $('#searchOptions').on('click', '.close', () => {
       $('#searchOptions').hide();
     });
 
-    $('#resetSearchButton').on('click', function(e) {
+    $('#resetSearchButton').on('click', (e) => {
       e.preventDefault();
-      resetSearchOptions();
+      this._resetSearchOptions();
       $('#searchBox').val("");
     });
 
-    $('#clearSearchButton').on('click', function(e) {
+    $('#clearSearchButton').on('click', (e) => {
       e.preventDefault();
       $('#searchOptions').hide();
-      cancelSearch();
+      this._cancelSearch();
     });
 
     $('#searchRecursive').attr('checked', TSCORE.Config.getUseSearchInSubfolders());
 
-    $('#searchRecursive').on('click', function(e) {
-      updateQuery();
+    $('#searchRecursive').on('click', (e) => {
+      this._updateQuery();
     });
 
-    $('#searchTerms').on('blur', function(e) {
-      updateQuery();
+    $('#searchTerms').on('blur', (e) => {
+      this._updateQuery();
     }).keypress(startSearchOnEnter);
 
-    $('#searchTags').on('blur', function(e) {
-      updateQuery();
+    $('#searchTags').on('blur', (e) => {
+      this._updateQuery();
     }).keypress(startSearchOnEnter);
 
-    $('#searchFileType').on('change', function(e) {
-      updateQuery();
+    $('#searchFileType').on('change', (e) => {
+      this._updateQuery();
     });
 
     if (TSCORE.PRO) {
@@ -84,155 +84,155 @@ define(function(require, exports, module) {
       $('#searchHistory').removeClass('disabled');
     }
   };
+  
+  class TSSearchUi {
 
-  function startSearchOnEnter(e) {
-    if (e.which == 13) {
-      e.preventDefault();
-      updateQuery();
-      startSearch();
-    }
-  }
-
-  //function parseQuery() {}
-
-  function updateQuery() {
-    var query = "";
-    if (!$('#searchRecursive').is(':checked')) {
-      query = TSCORE.Search.recursiveSymbol + " ";
+    static _startSearchOnEnter(e) {
+      if (e.which == 13) {
+        e.preventDefault();
+        this._updateQuery();
+        this._startSearch();
+      }
     }
 
-    var searchTerms = $('#searchTerms').val();
-    if (searchTerms.length > 0) {
-      searchTerms = searchTerms.split(" ");
-      searchTerms.forEach(function(term) {
-        if (term.length > 1) {
-          query = query + " " + term;
-        }
-      });
+    //function parseQuery() {}
+
+    static _updateQuery() {
+      let query = "";
+      if (!$('#searchRecursive').is(':checked')) {
+        query = TSCORE.Search.recursiveSymbol + " ";
+      }
+
+      let searchTerms = $('#searchTerms').val();
+      if (searchTerms.length > 0) {
+        searchTerms = searchTerms.split(" ");
+        searchTerms.forEach((term) => {
+          if (term.length > 1) {
+            query = query + " " + term;
+          }
+        });
+      }
+
+      let tags = $('#searchTags').val();
+      if (tags.length > 0) {
+        tags = tags.split(" ");
+        tags.forEach((tag) => {
+          if (tag.length > 1) {
+            query = query + " +" + tag;
+          }
+        });
+      }
+
+      let fileType = $('#searchFileType').val();
+      if (fileType.length > 0) {
+        query = query + " " + fileType;
+      }
+
+      console.log();
+      $('#searchBox').val(query);
+      TSCORE.Search.nextQuery = query;
     }
 
-    var tags = $('#searchTags').val();
-    if (tags.length > 0) {
-      tags = tags.split(" ");
-      tags.forEach(function(tag) {
-        if (tag.length > 1) {
-          query = query + " +" + tag;
-        }
-      });
+    static _resetSearchOptions() {
+      $('#searchRecursive').prop('checked', TSCORE.Config.getUseSearchInSubfolders());
+      $('#searchTerms').val("");
+      $('#searchTags').val("");
+      $('#searchFileType').val("");
+      $('#searchHistory').val("");
     }
 
-    var fileType = $('#searchFileType').val();
-    if (fileType.length > 0) {
-      query = query + " " + fileType;
+    static _showSearchOptions() {
+      this._resetSearchOptions();
+      if (TSCORE.PRO && TSCORE.PRO.Search) {
+        TSCORE.PRO.Search.loadSearchHistory();
+      }
+      var leftPosition = $(".col2").position().left + $(".col2").width();
+      leftPosition = leftPosition - ($("#searchOptions").width() + 2);
+      $("#searchOptions").css({left: leftPosition});
+      $("#searchOptions").show();
     }
 
-    console.log();
-    $('#searchBox').val(query);
-    TSCORE.Search.nextQuery = query;
-  }
+    static _startSearch() {
+      if (TSCORE.IO.stopWatchingDirectories) {
+        TSCORE.IO.stopWatchingDirectories();
+      }
+      if ($('#searchBox').val().length > 0) {
+        let origSearchVal = $('#searchBox').val();
+        origSearchVal = origSearchVal.trim();
 
-  function resetSearchOptions() {
-    $('#searchRecursive').prop('checked', TSCORE.Config.getUseSearchInSubfolders());
-    $('#searchTerms').val("");
-    $('#searchTags').val("");
-    $('#searchFileType').val("");
-    $('#searchHistory').val("");
-  }
-
-  function showSearchOptions() {
-    resetSearchOptions();
-    if (TSCORE.PRO && TSCORE.PRO.Search) {
-      TSCORE.PRO.Search.loadSearchHistory();
-    }
-    var leftPosition = $(".col2").position().left + $(".col2").width();
-    leftPosition = leftPosition - ($("#searchOptions").width() + 2);
-    $("#searchOptions").css({left: leftPosition});
-    $("#searchOptions").show();
-  }
-
-  function startSearch() {
-    if (TSCORE.IO.stopWatchingDirectories) {
-      TSCORE.IO.stopWatchingDirectories();
-    }
-    if ($('#searchBox').val().length > 0) {
-      var origSearchVal = $('#searchBox').val();
-      origSearchVal = origSearchVal.trim();
-
-      if ($('#searchRecursive').prop('checked')) {
-        $('#searchBox').val(origSearchVal);
-      } else {
-        if (origSearchVal.indexOf(TSCORE.Search.recursiveSymbol) === 0) {
+        if ($('#searchRecursive').prop('checked')) {
           $('#searchBox').val(origSearchVal);
         } else {
-          //origSearchVal = origSearchVal.substring(1, origSearchVal.length);
-          $('#searchBox').val(TSCORE.Search.recursiveSymbol + " " + origSearchVal);
+          if (origSearchVal.indexOf(TSCORE.Search.recursiveSymbol) === 0) {
+            $('#searchBox').val(origSearchVal);
+          } else {
+            //origSearchVal = origSearchVal.substring(1, origSearchVal.length);
+            $('#searchBox').val(TSCORE.Search.recursiveSymbol + " " + origSearchVal);
+          }
         }
-      }
 
-      if (TSCORE.PRO && TSCORE.PRO.Search) {
-        TSCORE.PRO.Search.addQueryToHistory(origSearchVal);
-      }
-      TSCORE.Search.nextQuery = $('#searchBox').val();
-    } else {
-      cancelSearch();
-    }
-    $('#searchOptions').hide();
-    TSCORE.PerspectiveManager.redrawCurrentPerspective();
-  }
-
-  function cancelSearch() {
-    clearSearchFilter();
-    // Restoring initial dir listing without subdirectories
-    TSCORE.IO.listDirectoryPromise(TSCORE.currentPath).then(
-      function(entries) {
-        TSCORE.PerspectiveManager.updateFileBrowserData(entries);
-        TSCORE.updateSubDirs(entries);        
-      }
-    ).catch(function(err) {
-      var dir1 = TSCORE.TagUtils.cleanTrailingDirSeparator(TSCORE.currentLocationObject.path);
-      var dir2 = TSCORE.TagUtils.cleanTrailingDirSeparator(TSCORE.currentPath);
-      // Close the current location if the its path could not be opened
-      if (dir1 === dir2) {
-        TSCORE.showAlertDialog($.i18n.t('ns.dialogs:errorOpeningLocationAlert'));
-        TSCORE.closeCurrentLocation();
+        if (TSCORE.PRO && TSCORE.PRO.Search) {
+          TSCORE.PRO.Search.addQueryToHistory(origSearchVal);
+        }
+        TSCORE.Search.nextQuery = $('#searchBox').val();
       } else {
-        TSCORE.showAlertDialog($.i18n.t('ns.dialogs:errorOpeningPathAlert'));
-      }      
-      console.warn("Error listing directory" + err);
-    });
-  }
-
-  function showSearchArea() {
-    $('#showSearchButton').hide();
-    $('#searchToolbar').show();
-    $('#searchBox').focus();
-  }
-
-  function clearSearchFilter() {
-    $('#searchToolbar').hide();
-    $('#showSearchButton').show();
-    $('#searchOptions').hide();
-    $('#searchBox').val('');
-    $('#clearFilterButton').removeClass('filterOn');
-    TSCORE.Search.nextQuery = '';
-  }
-
-  function searchForTag(tagQuery) {
-    if (TSCORE.isOneColumn()) {
-      TSCORE.closeLeftPanel();
+        this._cancelSearch();
+      }
+      $('#searchOptions').hide();
+      TSCORE.PerspectiveManager.redrawCurrentPerspective();
     }
-    var nxtQuery = ' +' + tagQuery; //TSCORE.Search.recursiveSymbol + ' +' + tagQuery;
-    TSCORE.Search.nextQuery = nxtQuery;
-    $('#searchBox').val(nxtQuery);
-    TSCORE.PerspectiveManager.redrawCurrentPerspective();
-    $('#showSearchButton').hide();
-    $('#searchToolbar').show();
-    //TSCORE.showSearchArea();
-  }
+
+    static _cancelSearch() {
+      this.clearSearchFilter();
+      // Restoring initial dir listing without subdirectories
+      TSCORE.IO.listDirectoryPromise(TSCORE.currentPath).then(
+        (entries) => {
+          TSCORE.PerspectiveManager.updateFileBrowserData(entries);
+          TSCORE.updateSubDirs(entries);        
+        }
+      ).catch((err) => {
+        let dir1 = TSCORE.TagUtils.cleanTrailingDirSeparator(TSCORE.currentLocationObject.path);
+        let dir2 = TSCORE.TagUtils.cleanTrailingDirSeparator(TSCORE.currentPath);
+        // Close the current location if the its path could not be opened
+        if (dir1 === dir2) {
+          TSCORE.showAlertDialog($.i18n.t('ns.dialogs:errorOpeningLocationAlert'));
+          TSCORE.closeCurrentLocation();
+        } else {
+          TSCORE.showAlertDialog($.i18n.t('ns.dialogs:errorOpeningPathAlert'));
+        }      
+        console.warn("Error listing directory" + err);
+      });
+    }
+
+    static showSearchArea() {
+      $('#showSearchButton').hide();
+      $('#searchToolbar').show();
+      $('#searchBox').focus();
+    }
+
+    static clearSearchFilter() {
+      $('#searchToolbar').hide();
+      $('#showSearchButton').show();
+      $('#searchOptions').hide();
+      $('#searchBox').val('');
+      $('#clearFilterButton').removeClass('filterOn');
+      TSCORE.Search.nextQuery = '';
+    }
+
+    static searchForTag(tagQuery) {
+      if (TSCORE.isOneColumn()) {
+        TSCORE.closeLeftPanel();
+      }
+      let nxtQuery = ' +' + tagQuery; //TSCORE.Search.recursiveSymbol + ' +' + tagQuery;
+      TSCORE.Search.nextQuery = nxtQuery;
+      $('#searchBox').val(nxtQuery);
+      TSCORE.PerspectiveManager.redrawCurrentPerspective();
+      $('#showSearchButton').hide();
+      $('#searchToolbar').show();
+      //TSCORE.showSearchArea();
+    }
+  } 
 
   // Public API definition
-  exports.initUI = initUI;
-  exports.clearSearchFilter = clearSearchFilter;
-  exports.showSearchArea = showSearchArea;
-  exports.searchForTag = searchForTag;
+  exports.TSSearchUi = TSSearchUi;
 });
